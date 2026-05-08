@@ -104,7 +104,7 @@ function App() {
         )}
 
         {currentScreen === "activity2" && currentProfile && (
-          <Activity2_SpeakPhrase
+          <Activity2
             age={currentProfile.age}
             stars={currentProfile.stars}
             onAwardStars={updateStars}
@@ -114,7 +114,7 @@ function App() {
         )}
 
         {currentScreen === "activity3" && currentProfile && (
-          <Activity3_SoundOrComplete
+          <Activity3
             age={currentProfile.age}
             stars={currentProfile.stars}
             onAwardStars={updateStars}
