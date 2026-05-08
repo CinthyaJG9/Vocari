@@ -13,6 +13,17 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 
+import dogImg from "../assets/images/dog.jpg";
+import catImg from "../assets/images/cat.jpg";
+import rabbitImg from "../assets/images/rabbit.jpg";
+import mouseImg from "../assets/images/mouse.jpg";
+import sunImg from "../assets/images/sun.jpg";
+import moonImg from "../assets/images/moon.jpg";
+import starImg from "../assets/images/star.jpg";
+import game1Img from "../assets/images/game1.jpg";
+import game2Img from "../assets/images/game2.jpg";
+import game3Img from "../assets/images/game3.jpg";
+
 type Screen =
   | "voice-setup"
   | "profile-select"
@@ -61,16 +72,25 @@ export default function App() {
     useState<Screen>("profile-select");
   const [voiceStep, setVoiceStep] =
     useState<VoiceStep>("welcome");
-  const [profiles, setProfiles] = useState<UserProfile[]>([
-    { id: "1", name: "Ana", age: 5, stars: 12, avatar: "cat" },
-    {
-      id: "2",
-      name: "Pedro",
-      age: 8,
-      stars: 25,
-      avatar: "dog",
-    },
-  ]);
+
+  const [profiles, setProfiles] = useState<UserProfile[]>(() => {
+    const savedProfiles = localStorage.getItem("vocari_profiles");
+
+    if (savedProfiles) {
+      return JSON.parse(savedProfiles);
+    }
+
+    return [
+      { id: "1", name: "Ana", age: 5, stars: 12, avatar: "cat" },
+      {
+        id: "2",
+        name: "Pedro",
+        age: 8,
+        stars: 25,
+        avatar: "dog",
+      },
+    ];
+  });
   const [currentProfile, setCurrentProfile] =
     useState<UserProfile | null>(null);
   const [newProfileData, setNewProfileData] = useState({
@@ -98,6 +118,12 @@ export default function App() {
   const [currentGameIndex, setCurrentGameIndex] = useState(0);
 
   const carouselRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    localStorage.setItem(
+      "vocari_profiles",
+      JSON.stringify(profiles),
+    );
+  }, [profiles]);
 
   const isYoungUser = currentProfile
     ? currentProfile.age <= 6
@@ -209,30 +235,16 @@ export default function App() {
     size?: "small" | "normal" | "large";
   }) => {
     const images: { [key: string]: string } = {
-      cat: "(imagen de un gato)",
-      dog: "(imagen de un perro)",
-      mouse: "(imagen de un ratón)",
-      sun: "(imagen del sol)",
-      moon: "(imagen de la luna)",
-      star: "(imagen de una estrella)",
-      house: "(imagen de una casa)",
-      tree: "(imagen de un árbol)",
-      car: "(imagen de un carro)",
-      rabbit: "(imagen de un conejo)",
-      butterfly: "(imagen de una mariposa)",
-      bee: "(imagen de una abeja)",
-      bird: "(imagen de un pájaro)",
-      ladybug: "(imagen de una mariquita)",
-      sleep: "(imagen de dormir)",
-      run: "(imagen de correr)",
-      cow: "(imagen de una vaca)",
-      smile: "(imagen de sonreír)",
-      girl: "(imagen de una niña)",
-      read: "(imagen de leer)",
-      school: "(imagen de una escuela)",
-      game1: "(imagen del juego escucha y elige)",
-      game2: "(imagen del juego crea tu frase)",
-      game3: "(imagen del juego encuentra el sonido)",
+      dog: dogImg,
+      cat: catImg,
+      rabbit: rabbitImg,
+      mouse: mouseImg,
+      sun: sunImg,
+      moon: moonImg,
+      star: starImg,
+      game1: game1Img,
+      game2: game2Img,
+      game3: game3Img,
     };
 
     const sizeClasses = {
@@ -242,14 +254,14 @@ export default function App() {
     };
 
     return (
-      <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl border-2 border-dashed border-purple-300">
-        <p
-          className={`${sizeClasses[size]} text-purple-600 font-medium text-center px-4`}
-        >
-          {images[type] || avatars[type] || "(imagen)"}
-        </p>
-      </div>
-    );
+      <div className="w-full h-full overflow-hidden rounded-2xl shadow-lg">
+        <img
+          src={images[type]}
+          alt={type}
+          className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+        />
+    </div>
+  );
   };
 
   const playWord = (word: string) => {
