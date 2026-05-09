@@ -24,6 +24,10 @@ import game1Img from "../assets/images/game1.jpg";
 import game2Img from "../assets/images/game2.jpg";
 import game3Img from "../assets/images/game3.jpg";
 
+import avatar1Img from "../assets/images/avatar1.jpg";
+import avatar2Img from "../assets/images/avatar2.jpg";
+import avatar3Img from "../assets/images/avatar3.jpg";
+
 type Screen =
   | "voice-setup"
   | "profile-select"
@@ -96,6 +100,7 @@ export default function App() {
   const [newProfileData, setNewProfileData] = useState({
     name: "",
     age: 0,
+    avatar: "avatar1",
   });
   const [voiceInput, setVoiceInput] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -242,9 +247,15 @@ export default function App() {
       sun: sunImg,
       moon: moonImg,
       star: starImg,
+
+      avatar1: avatar1Img,
+      avatar2: avatar2Img,
+      avatar3: avatar3Img,
+
       game1: game1Img,
       game2: game2Img,
       game3: game3Img,
+      
     };
 
     const sizeClasses = {
@@ -270,29 +281,44 @@ export default function App() {
     utterance.rate = 0.8;
     window.speechSynthesis.speak(utterance);
   };
-
   const simulateVoiceInput = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta reconocimiento de voz");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = "es-ES";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
     setIsListening(true);
-    setTimeout(() => {
-      if (voiceStep === "name") {
-        const names = [
-          "María",
-          "Juan",
-          "Sofía",
-          "Carlos",
-          "Luna",
-        ];
-        setVoiceInput(
-          names[Math.floor(Math.random() * names.length)],
-        );
-      } else if (voiceStep === "age") {
-        setVoiceInput(
-          String(Math.floor(Math.random() * 6) + 4),
-        );
-      }
+
+    recognition.start();
+
+    recognition.onresult = (event: any) => {
+      const transcript =
+        event.results[0][0].transcript;
+
+      setVoiceInput(transcript);
       setIsListening(false);
-    }, 2000);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      alert("Error al reconocer voz");
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
   };
+
 
   const handleVoiceConfirm = () => {
     if (voiceStep === "name") {
@@ -303,19 +329,47 @@ export default function App() {
       setVoiceInput("");
       setVoiceStep("age");
     } else if (voiceStep === "age") {
-      const age = parseInt(voiceInput);
-      setNewProfileData({ ...newProfileData, age });
+
+      const numberWords: { [key: string]: number } = {
+        uno: 1,
+        dos: 2,
+        tres: 3,
+        cuatro: 4,
+        cinco: 5,
+        seis: 6,
+        siete: 7,
+        ocho: 8,
+        nueve: 9,
+        diez: 10,
+      };
+
+      let cleanedInput = voiceInput
+        .toLowerCase()
+        .replace("años", "")
+        .replace("año", "")
+        .trim();
+
+      let age = parseInt(cleanedInput);
+
+      if (isNaN(age)) {
+        age = numberWords[cleanedInput];
+      }
+
+      setNewProfileData({
+        ...newProfileData,
+      age,
+      });
+
       setVoiceInput("");
       setVoiceStep("confirm");
+
     } else if (voiceStep === "confirm") {
       const newProfile: UserProfile = {
         id: Date.now().toString(),
         name: newProfileData.name,
         age: newProfileData.age,
         stars: 0,
-        avatar: ["cat", "dog", "bear", "rabbit", "fox"][
-          Math.floor(Math.random() * 5)
-        ],
+        avatar: newProfileData.avatar,
       };
       setProfiles([...profiles, newProfile]);
       setCurrentProfile(newProfile);
@@ -551,7 +605,7 @@ export default function App() {
   ];
 
   return (
-    <div className="size-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-8">
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4 overflow-auto">
       <AnimatePresence mode="wait">
         {/* Registro por voz */}
         {currentScreen === "voice-setup" && (
@@ -562,6 +616,17 @@ export default function App() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="max-w-3xl w-full"
           >
+
+
+            <div className="flex justify-start mb-6">
+              <button
+                onClick={() => setCurrentScreen("profile-select")}
+                className="bg-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all"
+              >
+                <Home size={36} className="text-purple-600" />
+              </button>
+            </div>
+            
             <div className="bg-white rounded-3xl shadow-2xl p-16 text-center">
               {voiceStep === "welcome" && (
                 <motion.div
@@ -723,6 +788,32 @@ export default function App() {
                     <p className="text-5xl font-bold text-purple-600">
                       {newProfileData.age} años
                     </p>
+                    <p className="text-2xl text-gray-600 mt-6 mb-4">
+                      Elige tu avatar
+                    </p>
+
+                    <div className="flex justify-center gap-6 mb-8">
+                      {["avatar1", "avatar2", "avatar3"].map(
+                        (avatar) => (
+                          <button
+                            key={avatar}
+                            onClick={() =>
+                              setNewProfileData({
+                                ...newProfileData,
+                                avatar,
+                              })
+                            }
+                            className={`w-24 h-24 rounded-2xl overflow-hidden transition-all ${
+                              newProfileData.avatar === avatar
+                                ? "ring-4 ring-purple-500 scale-110"
+                                : ""
+                            }`}
+                          >
+                            <ImagePlaceholder type={avatar} />
+                          </button>
+                        ),
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-6 justify-center">
@@ -761,7 +852,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="max-w-6xl w-full"
           >
-            <h1 className="text-7xl font-bold text-purple-600 text-center mb-16">
+            <h1 className="text-5xl md:text-7xl font-bold text-purple-600 text-center mb-16">
               ¿Quién va a jugar?
             </h1>
 
@@ -1026,7 +1117,7 @@ export default function App() {
                   animate={{ scale: 1 }}
                   className={`${isCorrect ? "bg-green-400" : "bg-orange-400"} rounded-3xl p-16 shadow-2xl`}
                 >
-                  <p className="text-7xl font-bold text-white text-center">
+                  <p className="text-5xl md:text-7xl font-bold text-white text-center">
                     {isCorrect
                       ? "¡Muy bien!"
                       : "¡Intenta otra vez!"}
