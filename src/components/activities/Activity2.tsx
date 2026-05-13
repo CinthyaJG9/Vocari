@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Mic } from "lucide-react";
-import { ImagePlaceholder } from "../common/ImagePlaceholder";
+import { RealImage } from "../common/RealImage";
 import { FeedbackModal } from "../common/FeedbackModal";
 import { sentencesActivityYoung, sentencesActivityOlder } from "../../data/activitiesData";
 
@@ -110,7 +110,7 @@ export const Activity2 = ({
               transition={{ delay: index * 0.1 }}
               className="aspect-square rounded-3xl shadow-xl"
             >
-              <ImagePlaceholder type={image} size="large" />
+              <RealImage type={image} size="large" />
             </motion.div>
           ))}
         </div>

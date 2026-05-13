@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Volume2, Mic } from "lucide-react";
-import { ImagePlaceholder } from "../common/ImagePlaceholder";
+import { RealImage } from "../common/RealImage";  
 import { FeedbackModal } from "../common/FeedbackModal";
 import { wordsActivityYoung, wordsActivityOlder } from "../../data/activitiesData";
 import { useSpeech } from "../../hooks/useSpeech";
-
 interface Activity1Props {
   age: number;
   stars: number;
@@ -124,7 +123,7 @@ export const Activity1 = ({
                 }
               `}
             >
-              <ImagePlaceholder type={option} />
+              <RealImage type={option} />
             </motion.button>
           ))}
         </div>

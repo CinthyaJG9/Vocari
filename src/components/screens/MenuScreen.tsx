@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Star, RotateCcw } from "lucide-react";
-import { ImagePlaceholder } from "../common/ImagePlaceholder";
+import { RealImage } from "../common/RealImage";  
 
 interface Props {
   profileName: string;
@@ -29,7 +29,6 @@ export const MenuScreen = ({
       animate={{ opacity: 1 }}
       className="max-w-7xl w-full"
     >
-      {/* Header */}
       <div className="flex justify-between items-center mb-12">
         <div className="bg-white rounded-full px-8 py-4 shadow-lg">
           <p className="text-4xl font-bold text-purple-600">Hola, {profileName}</p>
@@ -48,7 +47,6 @@ export const MenuScreen = ({
         </div>
       </div>
 
-      {/* Carrusel */}
       <h2 className="text-6xl font-bold text-purple-600 text-center mb-12">
         Elige un juego
       </h2>
@@ -75,7 +73,7 @@ export const MenuScreen = ({
             >
               <div className={`h-64 bg-gradient-to-br ${game.color} flex items-center justify-center`}>
                 <div className="w-48 h-48">
-                  <ImagePlaceholder type={game.image} size="large" />
+                  <RealImage type={game.image} />  {/* ← CAMBIADO */}
                 </div>
               </div>
               <div className="p-10">

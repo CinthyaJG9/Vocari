@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Plus, Star } from "lucide-react";
 import type { UserProfile } from "../../types";
-import { ImagePlaceholder } from "../common/ImagePlaceholder";
+import { RealImage } from "../common/RealImage";  
 
 interface ProfileSelectScreenProps {
   profiles: UserProfile[];
@@ -35,7 +35,7 @@ export const ProfileSelectScreen = ({
             className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all"
           >
             <div className="w-40 h-40 mx-auto mb-6">
-              <ImagePlaceholder type={profile.avatar} size="large" />
+              <RealImage type={profile.avatar} />  {/* ← CAMBIADO */}
             </div>
             <h3 className="text-4xl font-bold text-gray-800 mb-3">{profile.name}</h3>
             <div className="flex items-center justify-center gap-2">

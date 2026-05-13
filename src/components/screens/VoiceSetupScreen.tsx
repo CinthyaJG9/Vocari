@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Mic, Check, RotateCcw } from "lucide-react";
+import { Mic, Check, RotateCcw, Home } from "lucide-react";
+import { RealImage } from "../common/RealImage";  
 import type { UserProfile, VoiceStep } from "../../types";
 
 interface VoiceSetupScreenProps {

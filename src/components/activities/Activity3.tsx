@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Volume2 } from "lucide-react";
-import { ImagePlaceholder } from "../common/ImagePlaceholder";
+import { RealImage } from "../common/RealImage";  
 import { FeedbackModal } from "../common/FeedbackModal";
 import { soundActivityYoung, wordCompleteActivityOlder } from "../../data/activitiesData";
 import { useSpeech } from "../../hooks/useSpeech";
@@ -141,7 +141,7 @@ export const Activity3= ({
                     }
                   `}
                 >
-                  <ImagePlaceholder type={option} />
+                  <RealImage type={option} />
                 </motion.button>
               ))}
             </div>
@@ -154,7 +154,7 @@ export const Activity3= ({
 
             <div className="flex justify-center mb-8">
               <div className="w-64 h-64">
-                <ImagePlaceholder type={currentWordComplete[currentActivityIndex].image} size="large" />
+                <RealImage type={currentWordComplete[currentActivityIndex].image} size="large" />
               </div>
             </div>
 

@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AnimatePresence } from "motion/react";
+import { Home, RotateCcw } from "lucide-react";
 import type { UserProfile, Screen } from "../types";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { VoiceSetupScreen } from "../components/screens/VoiceSetupScreen";
 import { ProfileSelectScreen } from "../components/screens/ProfileSelectScreen";
 import { MenuScreen } from "../components/screens/MenuScreen";
@@ -9,9 +11,9 @@ import { Activity1 } from "../components/activities/Activity1";
 import { Activity2 } from "../components/activities/Activity2";
 import { Activity3 } from "../components/activities/Activity3";
 
-function App() {
+export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("profile-select");
-  const [profiles, setProfiles] = useState<UserProfile[]>([
+  const [profiles, setProfiles] = useLocalStorage("vocari_profiles", [
     { id: "1", name: "Ana", age: 5, stars: 12, avatar: "cat" },
     { id: "2", name: "Pedro", age: 8, stars: 25, avatar: "dog" },
   ]);
@@ -56,16 +58,18 @@ function App() {
     }
   };
 
+  const handleAddProfile = (profile: UserProfile) => {
+    setProfiles([...profiles, profile]);
+    setCurrentProfile(profile);
+    setCurrentScreen("menu");
+  };
+
   return (
-    <div className="size-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-8">
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4 overflow-auto">
       <AnimatePresence mode="wait">
         {currentScreen === "voice-setup" && (
-          <VoiceSetupScreen
-            onComplete={(profile) => {
-              setProfiles([...profiles, profile]);
-              setCurrentProfile(profile);
-              setCurrentScreen("menu");
-            }}
+          <VoiceSetupScreen 
+            onComplete={handleAddProfile}
           />
         )}
 
@@ -140,5 +144,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
