@@ -1,0 +1,164 @@
+/* Variables para tamaños responsivos */
+:root {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+}
+
+/* Ajustes para tablets */
+@media (max-width: 1024px) {
+  h1 {
+    font-size: var(--text-4xl) !important;
+  }
+  h2 {
+    font-size: var(--text-3xl) !important;
+  }
+  .game-card {
+    min-width: 280px !important;
+  }
+}
+
+/* Ajustes para móviles */
+@media (max-width: 768px) {
+  h1 {
+    font-size: var(--text-3xl) !important;
+  }
+  h2 {
+    font-size: var(--text-2xl) !important;
+  }
+  h3 {
+    font-size: var(--text-xl) !important;
+  }
+  .game-card {
+    min-width: 250px !important;
+  }
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  button {
+    min-height: 48px;
+  }
+  .p-12 {
+    padding: 1.5rem !important;
+  }
+  .p-16 {
+    padding: 1.5rem !important;
+  }
+  .text-7xl {
+    font-size: var(--text-4xl) !important;
+  }
+  .text-6xl {
+    font-size: var(--text-3xl) !important;
+  }
+  .text-5xl {
+    font-size: var(--text-2xl) !important;
+  }
+  .text-4xl {
+    font-size: var(--text-xl) !important;
+  }
+  .rounded-3xl {
+    border-radius: 1rem !important;
+  }
+}
+
+/* Mejoras touch */
+button, .clickable {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  transform: scale(0.97);
+  transition: transform 0.05s;
+}
+
+/* Scroll suave para carrusel */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Animaciones suaves */
+* {
+  transition: all 0.2s ease;
+}
+
+/* Responsive para todos los tamaños */
+* {
+  box-sizing: border-box;
+}
+
+/* Para tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Para móviles */
+@media (max-width: 767px) {
+  .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .text-7xl, .text-6xl, .text-5xl {
+    font-size: 2rem !important;
+  }
+  
+  .p-12, .p-16 {
+    padding: 1.5rem !important;
+  }
+  
+  .rounded-3xl {
+    border-radius: 1.5rem !important;
+  }
+  
+  button {
+    min-height: 48px;
+  }
+}
+
+/* Ajustes de touch */
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+/* Scrollbar oculto para carrusel */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

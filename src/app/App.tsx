@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { AnimatePresence } from "motion/react";
-import { Home, RotateCcw } from "lucide-react";
-import type { UserProfile, Screen } from "../types";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import type { Screen } from "../types";
+import { useProfiles } from "../hooks/userProfile";
+import { useWarmAssistant } from "../hooks/userWarmAssistant";
 import { VoiceSetupScreen } from "../components/screens/VoiceSetupScreen";
 import { ProfileSelectScreen } from "../components/screens/ProfileSelectScreen";
 import { MenuScreen } from "../components/screens/MenuScreen";
@@ -10,16 +10,16 @@ import { RewardsScreen } from "../components/screens/RewardsScreen";
 import { Activity1 } from "../components/activities/Activity1";
 import { Activity2 } from "../components/activities/Activity2";
 import { Activity3 } from "../components/activities/Activity3";
+import { FloatingAssistant } from "../components/assistant/FloatingAssistant";
+import { EditProfileModal } from "../components/common/EditProfileModal";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("profile-select");
-  const [profiles, setProfiles] = useLocalStorage("vocari_profiles", [
-    { id: "1", name: "Ana", age: 5, stars: 12, avatar: "cat" },
-    { id: "2", name: "Pedro", age: 8, stars: 25, avatar: "dog" },
-  ]);
-  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
+  const { profiles, currentProfile, setCurrentProfile, addProfile, updateStars, deleteProfile, updateAvatar } = useProfiles();
   const [starsEarned, setStarsEarned] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const { sayWelcome, sayProfileSaved, sayProfileDeleted, sayAvatarChanged } = useWarmAssistant();
 
   const isYoungUser = currentProfile ? currentProfile.age <= 6 : false;
 
@@ -33,14 +33,35 @@ export default function App() {
     },
   ];
 
-  const updateStars = (amount: number) => {
-    if (!currentProfile) return;
-    const updated = profiles.map((p) =>
-      p.id === currentProfile.id ? { ...p, stars: p.stars + amount } : p
-    );
-    setProfiles(updated);
-    setCurrentProfile({ ...currentProfile, stars: currentProfile.stars + amount });
-    setStarsEarned((prev) => prev + amount);
+  const handleAddProfile = async (profile: any) => {
+    addProfile(profile);
+    setCurrentScreen("menu");
+    await sayProfileSaved();
+  };
+
+  const handleUpdateStars = (amount: number) => {
+    if (currentProfile) {
+      updateStars(currentProfile.id, amount);
+      setStarsEarned((prev) => prev + amount);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    if (currentProfile) {
+      const remaining = deleteProfile(currentProfile.id);
+      setShowEditModal(false);
+      await sayProfileDeleted();
+      if (remaining.length === 0) {
+        setCurrentScreen("profile-select");
+      }
+    }
+  };
+
+  const handleUpdateAvatar = async (newAvatar: string) => {
+    if (currentProfile) {
+      updateAvatar(currentProfile.id, newAvatar);
+      await sayAvatarChanged();
+    }
   };
 
   const resetToMenu = () => {
@@ -58,89 +79,109 @@ export default function App() {
     }
   };
 
-  const handleAddProfile = (profile: UserProfile) => {
-    setProfiles([...profiles, profile]);
-    setCurrentProfile(profile);
-    setCurrentScreen("menu");
-  };
-
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4 overflow-auto">
-      <AnimatePresence mode="wait">
-        {currentScreen === "voice-setup" && (
-          <VoiceSetupScreen 
-            onComplete={handleAddProfile}
-          />
-        )}
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 relative">
+      <div className="max-w-7xl mx-auto p-4">
+        <AnimatePresence mode="wait">
+          {currentScreen === "voice-setup" && (
+            <VoiceSetupScreen 
+              onComplete={handleAddProfile}
+              onBack={() => setCurrentScreen("profile-select")}
+            />
+          )}
 
-        {currentScreen === "profile-select" && (
-          <ProfileSelectScreen
-            profiles={profiles}
-            onSelectProfile={(profile) => {
-              setCurrentProfile(profile);
-              setCurrentScreen("menu");
-            }}
-            onNewProfile={() => setCurrentScreen("voice-setup")}
-          />
-        )}
+          {currentScreen === "profile-select" && (
+            <ProfileSelectScreen
+              profiles={profiles}
+              onSelectProfile={(profile) => {
+                setCurrentProfile(profile);
+                setCurrentScreen("menu");
+              }}
+              onNewProfile={() => setCurrentScreen("voice-setup")}
+            />
+          )}
 
-        {currentScreen === "menu" && currentProfile && (
-          <MenuScreen
-            profileName={currentProfile.name}
-            stars={currentProfile.stars}
-            games={games}
-            carouselRef={carouselRef}
-            onSelectGame={(index) => setCurrentScreen(`activity${index + 1}` as Screen)}
-            onChangeProfile={() => setCurrentScreen("profile-select")}
-            onScrollLeft={() => scrollCarousel("left")}
-            onScrollRight={() => scrollCarousel("right")}
-          />
-        )}
+          {currentScreen === "menu" && currentProfile && (
+            <MenuScreen
+              profileName={currentProfile.name}
+              stars={currentProfile.stars}
+              games={games}
+              carouselRef={carouselRef}
+              onSelectGame={(index) => setCurrentScreen(`activity${index + 1}` as Screen)}
+              onChangeProfile={() => setCurrentScreen("profile-select")}
+              onEditProfile={() => setShowEditModal(true)}
+              onScrollLeft={() => scrollCarousel("left")}
+              onScrollRight={() => scrollCarousel("right")}
+            />
+          )}
 
-        {currentScreen === "activity1" && currentProfile && (
-          <Activity1
-            age={currentProfile.age}
-            stars={currentProfile.stars}
-            onAwardStars={updateStars}
-            onFinish={() => setCurrentScreen("rewards")}
-            onExit={resetToMenu}
-          />
-        )}
+          {currentScreen === "activity1" && currentProfile && (
+            <Activity1
+              age={currentProfile.age}
+              stars={currentProfile.stars}
+              onAwardStars={handleUpdateStars}
+              onFinish={() => setCurrentScreen("rewards")}
+              onExit={resetToMenu}
+            />
+          )}
 
-        {currentScreen === "activity2" && currentProfile && (
-          <Activity2
-            age={currentProfile.age}
-            stars={currentProfile.stars}
-            onAwardStars={updateStars}
-            onFinish={() => setCurrentScreen("rewards")}
-            onExit={resetToMenu}
-          />
-        )}
+          {currentScreen === "activity2" && currentProfile && (
+            <Activity2
+              age={currentProfile.age}
+              stars={currentProfile.stars}
+              onAwardStars={handleUpdateStars}
+              onFinish={() => setCurrentScreen("rewards")}
+              onExit={resetToMenu}
+            />
+          )}
 
-        {currentScreen === "activity3" && currentProfile && (
-          <Activity3
-            age={currentProfile.age}
-            stars={currentProfile.stars}
-            onAwardStars={updateStars}
-            onFinish={() => setCurrentScreen("rewards")}
-            onExit={resetToMenu}
-          />
-        )}
+          {currentScreen === "activity3" && currentProfile && (
+            <Activity3
+              age={currentProfile.age}
+              stars={currentProfile.stars}
+              onAwardStars={handleUpdateStars}
+              onFinish={() => setCurrentScreen("rewards")}
+              onExit={resetToMenu}
+            />
+          )}
 
-        {currentScreen === "rewards" && currentProfile && (
-          <RewardsScreen
-            starsEarned={starsEarned}
-            totalStars={currentProfile.stars}
-            onBackToMenu={resetToMenu}
-          />
-        )}
-      </AnimatePresence>
+          {currentScreen === "rewards" && currentProfile && (
+            <RewardsScreen
+              starsEarned={starsEarned}
+              totalStars={currentProfile.stars}
+              onBackToMenu={resetToMenu}
+            />
+          )}
+        </AnimatePresence>
+      </div>
 
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+      {/* Asistente flotante - visible en toda la app excepto en rewards y voice-setup */}
+      {currentScreen !== "rewards" && currentScreen !== "voice-setup" && (
+        <FloatingAssistant 
+          showHelp={currentScreen === "menu"}
+          onHelpClick={() => {
+            if (currentScreen === "menu") {
+
+            }
+          }}
+        />
+      )}
+
+      {/* Modal de edición de perfil */}
+      {showEditModal && currentProfile && (
+        <EditProfileModal
+          profile={currentProfile}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleUpdateAvatar}
+          onDelete={handleDeleteProfile}
+        />
+      )}
     </div>
   );
 }
+
+<style>{`
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+`}</style>

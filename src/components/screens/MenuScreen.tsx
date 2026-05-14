@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
-import { ChevronLeft, ChevronRight, Star, RotateCcw } from "lucide-react";
-import { RealImage } from "../common/RealImage";  
+import { ChevronLeft, ChevronRight, Star, RotateCcw, Settings } from "lucide-react";
+import { RealImage } from "../common/RealImage";
 
 interface Props {
   profileName: string;
@@ -8,6 +8,7 @@ interface Props {
   games: Array<{ name: string; color: string; image: string }>;
   onSelectGame: (index: number) => void;
   onChangeProfile: () => void;
+  onEditProfile: () => void;  
   onScrollLeft: () => void;
   onScrollRight: () => void;
   carouselRef: React.RefObject<HTMLDivElement | null>;
@@ -19,6 +20,7 @@ export const MenuScreen = ({
   games,
   onSelectGame,
   onChangeProfile,
+  onEditProfile,
   onScrollLeft,
   onScrollRight,
   carouselRef,
@@ -29,9 +31,17 @@ export const MenuScreen = ({
       animate={{ opacity: 1 }}
       className="max-w-7xl w-full"
     >
-      <div className="flex justify-between items-center mb-12">
-        <div className="bg-white rounded-full px-8 py-4 shadow-lg">
+      {/* Header con botón de editar */}
+      <div className="flex justify-between items-center mb-12 flex-wrap gap-4">
+        <div className="bg-white rounded-full px-8 py-4 shadow-lg flex items-center gap-4">
           <p className="text-4xl font-bold text-purple-600">Hola, {profileName}</p>
+          <button
+            onClick={onEditProfile}
+            className="p-2 hover:bg-purple-100 rounded-full transition-colors"
+            title="Editar perfil"
+          >
+            <Settings size={28} className="text-purple-500" />
+          </button>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 bg-white rounded-full px-8 py-4 shadow-lg">
@@ -50,6 +60,7 @@ export const MenuScreen = ({
       <h2 className="text-6xl font-bold text-purple-600 text-center mb-12">
         Elige un juego
       </h2>
+
       <div className="relative">
         <button
           onClick={onScrollLeft}
@@ -73,7 +84,7 @@ export const MenuScreen = ({
             >
               <div className={`h-64 bg-gradient-to-br ${game.color} flex items-center justify-center`}>
                 <div className="w-48 h-48">
-                  <RealImage type={game.image} />  {/* ← CAMBIADO */}
+                  <RealImage type={game.image} />
                 </div>
               </div>
               <div className="p-10">
