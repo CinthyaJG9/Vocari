@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Mic } from "lucide-react";
-import { RealImage } from "../common/RealImage";
+import { ImagePlaceholder } from "../common/ImagePlaceholder";
 import { FeedbackModal } from "../common/FeedbackModal";
 import { sentencesActivityYoung, sentencesActivityOlder } from "../../data/activitiesData";
+import { evaluateSpeech } from "../../services/dynamicWordService";
+import { getWordByAge } from "../../services/dynamicWordService";
+import { getRealImage } from "../../services/dynamicWordService";
 
 interface Activity2Props {
   age: number;
@@ -21,12 +24,32 @@ export const Activity2 = ({
   onExit,
 }: Activity2Props) => {
   const isYoungUser = age <= 6;
-  const currentSentences = isYoungUser ? sentencesActivityYoung : sentencesActivityOlder;
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const [dynamicWords, setDynamicWords] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadWords = async () => {
+      const word1 = await getWordByAge(age);
+      const word2 = await getWordByAge(age);
+      const word3 = await getWordByAge(age);
+
+      const image1 = await getRealImage(word1);
+const image2 = await getRealImage(word2);
+const image3 = await getRealImage(word3);
+
+setDynamicWords([image1, image2, image3]);
+
+    };
+
+    loadWords();
+  }, [currentActivityIndex]);
+
+
+
 
   const handleMicClick = () => {
     setIsSpeaking(true);
@@ -35,23 +58,37 @@ export const Activity2 = ({
       setIsSpeaking(false);
       setHasSpoken(true);
 
-      const randomSuccess = Math.random() > 0.2;
-      setIsCorrect(randomSuccess);
+      const currentSentence = dynamicWords.join(" ");
+
+      const simulatedSpeech = currentSentence;
+
+      const result = evaluateSpeech(
+        simulatedSpeech,
+        currentSentence,
+        age
+      );
+
+      setIsCorrect(result.correct);
       setShowFeedback(true);
 
-      if (randomSuccess) {
-        onAwardStars(1);
+      if (result.correct) {
+       onAwardStars(1);
       }
+
+
+
+
+
 
       setTimeout(() => {
         setShowFeedback(false);
-        if (randomSuccess) {
-          if (currentActivityIndex < currentSentences.length - 1) {
-            setCurrentActivityIndex(currentActivityIndex + 1);
-            setHasSpoken(false);
-          } else {
-            onFinish();
-          }
+        if (result.correct) {
+          if (currentActivityIndex < 4) {
+  setCurrentActivityIndex(currentActivityIndex + 1);
+  setHasSpoken(false);
+} else {
+  onFinish();
+}
         } else {
           setHasSpoken(false);
         }
@@ -66,6 +103,7 @@ export const Activity2 = ({
       exit={{ opacity: 0 }}
       className="max-w-6xl w-full"
     >
+      
       <div className="flex justify-between items-center mb-8">
         <button
           onClick={onExit}
@@ -93,27 +131,33 @@ export const Activity2 = ({
           <p className="text-4xl">🎤</p>
         </div>
 
-        <div
-          className={`grid ${
-            isYoungUser
-              ? "grid-cols-2"
-              : currentSentences[currentActivityIndex].images.length === 3
-              ? "grid-cols-3"
-              : "grid-cols-4"
-          } gap-8 max-w-5xl mx-auto mb-12`}
-        >
-          {currentSentences[currentActivityIndex].images.map((image, index) => (
-            <motion.div
-              key={index}
-              initial={{ scale: 0, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="aspect-square rounded-3xl shadow-xl"
-            >
-              <RealImage type={image} size="large" />
-            </motion.div>
-          ))}
-        </div>
+      {dynamicWords.length === 0 ? (
+  <p className="text-center text-2xl text-purple-600">
+    Cargando imágenes...
+  </p>
+) : (
+  <div
+    className={`grid ${
+      isYoungUser ? "grid-cols-2" : "grid-cols-3"
+    } gap-8 max-w-5xl mx-auto mb-12`}
+  >
+    {dynamicWords.map((image, index) => (
+      <motion.div
+        key={index}
+        initial={{ scale: 0, rotate: -10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="aspect-square rounded-3xl shadow-xl"
+      >
+        <img
+  src={image}
+  alt="imagen"
+  className="w-full h-full object-cover rounded-3xl"
+/>
+      </motion.div>
+    ))}
+  </div>
+)}
 
         {!hasSpoken && !isSpeaking && (
           <motion.div
@@ -157,7 +201,7 @@ export const Activity2 = ({
             className="mt-8 text-center"
           >
             <p className="text-2xl text-gray-500 italic">
-              Ejemplo: {currentSentences[currentActivityIndex].exampleSentence}
+              Ejemplo: {dynamicWords.join(" ")}
             </p>
           </motion.div>
         )}

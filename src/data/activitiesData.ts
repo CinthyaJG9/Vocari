@@ -11,13 +11,47 @@ export const wordsActivityOlder: WordActivity[] = [
 ];
 
 export const sentencesActivityYoung: SentenceActivity[] = [
-  { images: ["cat", "sleep"], exampleSentence: "El gato duerme" },
-  { images: ["sun", "smile"], exampleSentence: "El sol brilla" },
+  { 
+    images: ["dog", "ball"], 
+    exampleSentence: "El perro juega pelota" 
+  },
+
+  { 
+    images: ["sun", "house"], 
+    exampleSentence: "El sol ilumina la casa" 
+  },
+
+  { 
+    images: ["cat", "milk"], 
+    exampleSentence: "El gato toma leche" 
+  },
+
+  { 
+    images: ["bird", "tree"], 
+    exampleSentence: "El pájaro está en el árbol" 
+  }
 ];
 
 export const sentencesActivityOlder: SentenceActivity[] = [
-  { images: ["dog", "run", "tree"], exampleSentence: "El perro corre al árbol" },
-  { images: ["girl", "read", "school"], exampleSentence: "La niña lee en la escuela" },
+  { 
+    images: ["dog", "run", "park"], 
+    exampleSentence: "El perro corre rápido" 
+  },
+
+  { 
+    images: ["rabbit", "carrot"], 
+    exampleSentence: "El conejo come zanahoria" 
+  },
+
+  { 
+    images: ["girl", "school"], 
+    exampleSentence: "La niña va a la escuela" 
+  },
+
+  { 
+    images: ["bird", "sky"], 
+    exampleSentence: "El pájaro vuela alto" 
+  }
 ];
 
 export const soundActivityYoung: SoundActivity[] = [

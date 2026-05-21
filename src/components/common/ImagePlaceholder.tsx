@@ -30,6 +30,11 @@ const images: Record<string, string> = {
   game3: "🔊",
   bear: "🐻",
   fox: "🦊",
+  ball: "⚽",
+  milk: "🥛",
+  park: "🌳",
+  carrot: "🥕",
+  sky: "☁️",
 };
 
 const sizeClasses = {

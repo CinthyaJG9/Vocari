@@ -17,9 +17,8 @@ let usedWords: string[] = [];
 // Cache de imágenes (para no repetir peticiones)
 const imageCache = new Map<string, string>();
 
-const youngTopics = ['animal', 'fruit', 'toy', 'color', 'food'];
-const oldTopics = ['profession', 'instrument', 'planet', 'building', 'sport', 'science'];
-
+const youngTopics = ['animales', 'frutas', 'juguetes', 'colores', 'comida'];
+const oldTopics = ['profesiones', 'instrumentos', 'planetas', 'edificios', 'deportes', 'ciencia'];
 /**
  * Obtiene palabra aleatoria NUEVA (sin repetir)
  */
@@ -39,7 +38,30 @@ export const getWordByAge = async (age: number): Promise<string> => {
     const validWords = data
       .map((item: any) => item.word.toLowerCase())
       .filter((word: string) => {
-        const esValida = /^[a-zñáéíóú]{4,10}$/.test(word);
+        
+
+
+      const palabrasInvalidas = [
+        'adverse',
+        'apple',
+        'house',
+        'light',
+        'mouse',
+        'ring',
+        'clock',
+        'computer',
+        'star',
+        'moon',
+        'cat',
+        'dog',
+        'bird',
+        'car',
+        'phone'
+      ];
+
+      const esValida = 
+        /^[a-zñáéíóú]{4,10}$/.test(word) &&
+        !palabrasInvalidas.includes(word.toLowerCase());  
         const noEsArticulo = !FORBIDDEN_WORDS.includes(word);
         const noRepetida = !usedWords.includes(word);
         const esSustantivo = !word.includes('mente') && !word.includes('ción');
@@ -91,7 +113,7 @@ const getFallbackWord = (age: number): string => {
  */
 export const getRelatedWords = async (word: string, age: number): Promise<string[]> => {
   try {
-    const url = `https://api.datamuse.com/words?ml=${word}&v=es&max=50`;
+    const url = `https://api.datamuse.com/words?ml=${tema}&v=es&max=50`;
     const response = await fetch(url);
     const data = await response.json();
     
@@ -103,7 +125,8 @@ export const getRelatedWords = async (word: string, age: number): Promise<string
         /^[a-zñáéíóú]{3,10}$/.test(w) &&
         !usedWords.includes(w)
       )
-      .slice(0, 5);
+      .slice(0, 15);
+    distractors = [...new Set(distractors)];
     
     distractors = distractors.sort(() => Math.random() - 0.5).slice(0, 3);
     
@@ -134,7 +157,7 @@ export const getRealImage = async (word: string): Promise<string> => {
   
   try {
     // Buscar imagen en Pixabay
-    const url = `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(word)}&image_type=photo&safesearch=true&lang=es&per_page=10`;
+    const url = `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(word)}&image_type=ilustration&safesearch=true&lang=es&per_page=10`;
     
     const response = await fetch(url);
     const data = await response.json();
@@ -142,7 +165,7 @@ export const getRealImage = async (word: string): Promise<string> => {
     if (data.hits && data.hits.length > 0) {
       // Elegir la imagen más relevante (la primera o una aleatoria)
       // Para que no sea siempre la misma, a veces elegimos otra
-      const randomIndex = Math.random() > 0.7 ? Math.floor(Math.random() * Math.min(data.hits.length, 3)) : 0;
+      const randomIndex = 0; 
       const imageUrl = data.hits[randomIndex].webformatURL;
       
       imageCache.set(word, imageUrl);
