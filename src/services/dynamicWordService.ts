@@ -230,34 +230,90 @@ export const preloadImages = async (words: string[]): Promise<void> => {
   await Promise.all(words.map(word => getRealImage(word)));
 };
 
-// ============================================
-// EVALUACIÓN DE PRONUNCIACIÓN
-// ============================================
 
-export const evaluateSpeech = (spoken: string, expected: string, age: number) => {
-  const cleanSpoken = spoken.toLowerCase().trim();
-  const cleanExpected = expected.toLowerCase().trim();
-  
+
+// Normalizar texto (eliminar acentos, puntuación, espacios)
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")  
+    .replace(/[^\w\s]/g, "")          
+    .replace(/\s+/g, " ");            
+};
+
+export const evaluateSpeech = (spoken: string, expected: string, userName?: string) => {
+  const cleanSpoken = normalizeText(spoken);
+  const cleanExpected = normalizeText(expected);
+
   if (cleanSpoken === cleanExpected) {
-    return { correct: true, stars: 2, message: "¡Perfecto! +2 estrellas ⭐⭐" };
+    return {
+      correct: true,
+      stars: 2,
+      isExactlyCorrect: true,  
+      message: userName ? `¡Muy bien, ${userName}!` : "¡Muy bien!",
+      spokenFeedback: spoken,
+      expectedFeedback: expected
+    };
   }
   
+  // CASI CORRECTO: una letra de diferencia o plural
+
   if (cleanSpoken.includes(cleanExpected) || cleanExpected.includes(cleanSpoken)) {
-    return { correct: true, stars: 1, message: "¡Muy bien! +1 estrella ⭐" };
+    const isPlural = cleanSpoken === cleanExpected + 's' || cleanSpoken === cleanExpected + 'es';
+    
+    if (isPlural) {
+      return {
+        correct: true,
+        stars: 1,
+        isExactlyCorrect: false,
+        message: userName ? `¡Muy bien, ${userName}! La palabra es "${expected}" (sin la 's')` : `¡Muy bien! La palabra es "${expected}"`,
+        spokenFeedback: spoken,
+        expectedFeedback: expected
+      };
+    }
+    
+    return {
+      correct: true,
+      stars: 1,
+      isExactlyCorrect: false,
+      message: `¡Casi! Dijiste "${spoken}". La palabra es "${expected}"`,
+      spokenFeedback: spoken,
+      expectedFeedback: expected
+    };
   }
   
+  // Calcular similitud fonética
   let matches = 0;
+  const maxLength = Math.max(cleanSpoken.length, cleanExpected.length);
   for (let i = 0; i < Math.min(cleanSpoken.length, cleanExpected.length); i++) {
     if (cleanSpoken[i] === cleanExpected[i]) matches++;
   }
-  const similarity = matches / Math.max(cleanSpoken.length, cleanExpected.length);
-  const tolerance = age <= 5 ? 0.4 : age <= 7 ? 0.5 : 0.6;
+  const similarity = matches / maxLength;
+  
+  const tolerance = 0.4;
   
   if (similarity >= tolerance) {
-    return { correct: true, stars: 1, message: `¡Bien! +1 estrella ⭐` };
+    return {
+      correct: false,
+      stars: 0,
+      isExactlyCorrect: false,
+      message: `Dijiste "${spoken}". La palabra correcta es "${expected}". ¡Casi lo logras!`,
+      spokenFeedback: spoken,
+      expectedFeedback: expected
+    };
   }
   
-  return { correct: false, stars: 0, message: `Inténtalo otra vez 💪` };
+  // COMPLETAMENTE INCORRECTO
+  return {
+    correct: false,
+    stars: 0,
+    isExactlyCorrect: false,
+    message: `Dijiste "${spoken}". La palabra correcta es "${expected}". Escucha con atención: ${expected}`,
+    spokenFeedback: spoken,
+    expectedFeedback: expected
+  };
 };
 
 // ============================================
@@ -267,4 +323,48 @@ export const evaluateSpeech = (spoken: string, expected: string, age: number) =>
 export const resetWordHistory = () => {
   usedWords = [];
   imageCache.clear();
+};
+
+export const getWordDifficulty = (word: string, age: number): 'easy' | 'medium' | 'hard' => {
+  const length = word.length;
+  const hasComplexLetters = /[rr]/i.test(word) || /[aeiouáéíóú]{2}/i.test(word);
+  const hasSyllableBridges = /[br|cr|dr|fr|gr|pr|tr]/i.test(word);
+  
+  if (age < 7) {
+    if (length <= 4 && !hasComplexLetters) return 'easy';
+    if (length <= 6) return 'medium';
+    return 'hard';
+  } else {
+    if (length <= 6 && !hasSyllableBridges) return 'easy';
+    if (length <= 8) return 'medium';
+    return 'hard';
+  }
+};
+
+// Separar palabra en sílabas para enseñanza
+export const syllabify = (word: string): string[] => {
+  const syllables: string[] = [];
+  const wordLower = word.toLowerCase();
+  
+  // Reglas básicas de separación silábica en español
+  const pattern = /([bcdfghjklmnñpqrstvwxyz]*[aeiouáéíóú](?:[bcdfghjklmnñpqrstvwxyz]*[aeiouáéíóú])*)/gi;
+  const matches = wordLower.match(pattern);
+  
+  if (matches && matches.length > 0) {
+    // Filtrar vacíos y limpiar
+    for (const match of matches) {
+      if (match.trim().length > 0) {
+        syllables.push(match);
+      }
+    }
+  }
+  
+  // Si no se pudo silabificar, dividir cada 2 letras
+  if (syllables.length === 0) {
+    for (let i = 0; i < word.length; i += 2) {
+      syllables.push(word.slice(i, i + 2));
+    }
+  }
+  
+  return syllables;
 };

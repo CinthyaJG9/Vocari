@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Volume2, Mic, RefreshCw, Loader2, Trophy } from "lucide-react";
-import { getWordByAge, getRelatedWords, getRealImage, evaluateSpeech, resetWordHistory } from "../../services/dynamicWordService";
+import { getWordByAge, getRelatedWords, getRealImage, evaluateSpeech, resetWordHistory, getWordDifficulty } from "../../services/dynamicWordService";
+import { PronunciationPractice } from "./PronuntiationPractice";
 
 interface Activity1Props {
   age: number;
   stars: number;
+  userName?: string;
   onAwardStars: (amount: number) => void;
   onFinish: () => void;
   onExit: () => void;
 }
 
-export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activity1Props) => {
+export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity1Props) => {
   const isYoung = age <= 7;
   const [currentWord, setCurrentWord] = useState("");
   const [options, setOptions] = useState<string[]>([]);
@@ -24,7 +26,12 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
   const [isRecording, setIsRecording] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [gameFinished, setGameFinished] = useState(false);
-  const [showTextOnly, setShowTextOnly] = useState(false); // Para niños grandes: alternar entre imagen y texto
+  const [showTextOnly, setShowTextOnly] = useState(false);
+  
+  // Estados para práctica de pronunciación
+  const [showPractice, setShowPractice] = useState(false);
+  const [currentPracticeWord, setCurrentPracticeWord] = useState("");
+  const [pendingWordAdvance, setPendingWordAdvance] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const MAX_WORDS = 5;
@@ -50,6 +57,7 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
       setCurrentWord(word);
       setOptions(related);
       setSelectedOption(null);
+      setPendingWordAdvance(false);
       
       // Cargar imágenes solo si es necesario
       if (!showTextOnly || isYoung) {
@@ -76,11 +84,21 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
     const utterance = new SpeechSynthesisUtterance(currentWord);
     utterance.lang = 'es-ES';
     utterance.rate = 0.7;
+    utterance.pitch = 1.1;
     window.speechSynthesis.speak(utterance);
   };
 
+  const advanceToNextWord = () => {
+    if (!pendingWordAdvance) {
+      setPendingWordAdvance(true);
+      setTimeout(() => {
+        setWordCount(prev => prev + 1);
+      }, 500);
+    }
+  };
+
   const handleOptionSelect = (selected: string) => {
-    if (showFeedback) return;
+    if (showFeedback || pendingWordAdvance) return;
     
     setSelectedOption(selected);
     const isImgCorrect = selected === currentWord;
@@ -89,13 +107,29 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
     setShowFeedback(true);
 
     if (isImgCorrect) {
-      setFeedbackMessage("¡Correcto! +1 estrella ⭐");
-      onAwardStars(1);
+      // Verificar dificultad de la palabra
+      const difficulty = getWordDifficulty(currentWord, age);
       
-      setTimeout(() => {
-        setShowFeedback(false);
-        setWordCount(prev => prev + 1);
-      }, 1500);
+      if (difficulty === 'hard') {
+        // Palabra difícil: forzar práctica de pronunciación
+        setFeedbackMessage("¡Correcto! Ahora vamos a practicar cómo se dice");
+        onAwardStars(1); // Estrella por acertar la imagen
+        
+        setTimeout(() => {
+          setShowFeedback(false);
+          setCurrentPracticeWord(currentWord);
+          setShowPractice(true);
+        }, 1500);
+      } else {
+        // Palabra fácil o mediana: flujo normal
+        setFeedbackMessage("¡Correcto! +1 estrella ⭐");
+        onAwardStars(1);
+        
+        setTimeout(() => {
+          setShowFeedback(false);
+          advanceToNextWord();
+        }, 1500);
+      }
     } else {
       setFeedbackMessage(`No es "${selected}". La palabra es "${currentWord}"`);
       setTimeout(() => {
@@ -103,6 +137,29 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
         setSelectedOption(null);
       }, 2000);
     }
+  };
+
+  const handlePracticeComplete = (success: boolean, practiceStars: number) => {
+    setShowPractice(false);
+    
+    if (success && practiceStars > 0) {
+      onAwardStars(practiceStars);
+      setFeedbackMessage(`¡Excelente! +${practiceStars} ${practiceStars === 1 ? 'estrella' : 'estrellas'} por tu pronunciación ⭐`);
+      setShowFeedback(true);
+      setIsCorrect(true);
+      
+      setTimeout(() => {
+        setShowFeedback(false);
+        advanceToNextWord();
+      }, 2000);
+    } else {
+      advanceToNextWord();
+    }
+  };
+
+  const handleSkipPractice = () => {
+    setShowPractice(false);
+    advanceToNextWord();
   };
 
   const startRecording = () => {
@@ -117,7 +174,7 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
     recognition.onresult = (event: any) => {
       const spoken = event.results[0][0].transcript;
       setIsRecording(false);
-      const result = evaluateSpeech(spoken, currentWord, age);
+      const result = evaluateSpeech(spoken, currentWord, age.toString());
       
       if (result.correct) onAwardStars(result.stars);
       
@@ -128,7 +185,7 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
       setTimeout(() => {
         setShowFeedback(false);
         if (result.correct) {
-          setWordCount(prev => prev + 1);
+          advanceToNextWord();
         }
       }, 2000);
     };
@@ -143,6 +200,8 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
     setWordCount(0);
     setGameFinished(false);
     setSelectedOption(null);
+    setShowPractice(false);
+    setPendingWordAdvance(false);
     loadNewWord();
   };
 
@@ -210,93 +269,101 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
           <div className="p-6 md:p-10">
             
             <div className="text-center mb-8">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Escucha la palabra</h3>
-              <p className="text-gray-500">{showTextOnly && !isYoung ? "Elige la palabra correcta" : "Elige la imagen correcta"}</p>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                {showPractice ? "🎤 Practica la pronunciación" : "Escucha y elige"}
+              </h3>
+              <p className="text-gray-500">
+                {showPractice 
+                  ? "El asistente te ayudará a decir la palabra correctamente" 
+                  : (showTextOnly && !isYoung ? "Elige la palabra correcta" : "Elige la imagen correcta")}
+              </p>
             </div>
 
-            {/* Botón escuchar */}
-            <div className="flex justify-center mb-10">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={speakWord}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white w-28 h-28 md:w-32 md:h-32 rounded-full shadow-xl flex items-center justify-center"
-              >
-                <Volume2 size={48} />
-              </motion.button>
-            </div>
-
-            {/* Opciones - Dinámicas según edad */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-              {options.map((option, idx) => {
-                // Para niños grandes en modo texto
-                if (showTextOnly && !isYoung) {
-                  return (
-                    <motion.button
-                      key={idx}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleOptionSelect(option)}
-                      disabled={showFeedback}
-                      className={`p-6 rounded-2xl shadow-md transition-all text-center
-                        ${selectedOption === option 
-                          ? (isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white") 
-                          : "bg-purple-50 hover:bg-purple-100 text-gray-800"}
-                      `}
-                    >
-                      <span className="text-xl font-bold capitalize">{option}</span>
-                    </motion.button>
-                  );
-                }
-                
-                // Para niños pequeños: imágenes
-                return (
+            {/* Botón escuchar (solo cuando no está en modo práctica) */}
+            {!showPractice && (
+              <>
+                <div className="flex justify-center mb-10">
                   <motion.button
-                    key={idx}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleOptionSelect(option)}
-                    disabled={showFeedback}
-                    className={`relative aspect-square rounded-2xl overflow-hidden shadow-md transition-all
-                      ${selectedOption === option 
-                        ? (isCorrect ? "ring-4 ring-green-500" : "ring-4 ring-red-500") 
-                        : ""}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={speakWord}
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white w-28 h-28 md:w-32 md:h-32 rounded-full shadow-xl flex items-center justify-center"
+                  >
+                    <Volume2 size={48} />
+                  </motion.button>
+                </div>
+
+                {/* Opciones */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                  {options.map((option, idx) => {
+                    if (showTextOnly && !isYoung) {
+                      return (
+                        <motion.button
+                          key={idx}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleOptionSelect(option)}
+                          disabled={showFeedback}
+                          className={`p-6 rounded-2xl shadow-md transition-all text-center
+                            ${selectedOption === option 
+                              ? (isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white") 
+                              : "bg-purple-50 hover:bg-purple-100 text-gray-800"}
+                          `}
+                        >
+                          <span className="text-xl font-bold capitalize">{option}</span>
+                        </motion.button>
+                      );
+                    }
+                    
+                    return (
+                      <motion.button
+                        key={idx}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleOptionSelect(option)}
+                        disabled={showFeedback}
+                        className={`relative aspect-square rounded-2xl overflow-hidden shadow-md transition-all
+                          ${selectedOption === option 
+                            ? (isCorrect ? "ring-4 ring-green-500" : "ring-4 ring-red-500") 
+                            : ""}
+                        `}
+                      >
+                        {optionsImages[option] ? (
+                          <img src={optionsImages[option]} alt={option} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                            <Loader2 className="animate-spin text-gray-400" size={24} />
+                          </div>
+                        )}
+                        {!isYoung && (
+                          <div className="absolute bottom-0 inset-x-0 bg-white/90 py-1 text-center text-xs font-bold text-gray-700 capitalize">
+                            {option}
+                          </div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Botones de práctica */}
+                <div className="mt-10 flex justify-center gap-4">
+                  <button
+                    onClick={startRecording}
+                    disabled={isRecording || showFeedback}
+                    className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white shadow-lg transition-all
+                      ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500 hover:bg-green-600'}
                     `}
                   >
-                    {optionsImages[option] ? (
-                      <img src={optionsImages[option]} alt={option} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-gray-400" size={24} />
-                      </div>
-                    )}
-                    {!isYoung && (
-                      <div className="absolute bottom-0 inset-x-0 bg-white/90 py-1 text-center text-xs font-bold text-gray-700 capitalize">
-                        {option}
-                      </div>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Botones de práctica */}
-            <div className="mt-10 flex justify-center gap-4">
-              <button
-                onClick={startRecording}
-                disabled={isRecording || showFeedback}
-                className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white shadow-lg transition-all
-                  ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500 hover:bg-green-600'}
-                `}
-              >
-                <Mic size={24} />
-                {isRecording ? "Escuchando..." : "Practicar pronunciación"}
-              </button>
-              
-              <button onClick={() => loadNewWord()} className="p-3 text-gray-400 hover:text-purple-500 transition-colors">
-                <RefreshCw size={24} />
-              </button>
-            </div>
+                    <Mic size={24} />
+                    {isRecording ? "Escuchando..." : "Practicar pronunciación"}
+                  </button>
+                  
+                  <button onClick={() => loadNewWord()} className="p-3 text-gray-400 hover:text-purple-500 transition-colors">
+                    <RefreshCw size={24} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -308,6 +375,17 @@ export const Activity1 = ({ age, stars, onAwardStars, onFinish, onExit }: Activi
               <p className="text-xl font-bold text-white">{feedbackMessage}</p>
             </motion.div>
           </motion.div>
+        )}
+
+        {/* Modal de práctica de pronunciación */}
+        {showPractice && (
+          <PronunciationPractice
+            word={currentPracticeWord}
+            age={age}
+            userName={userName}
+            onComplete={handlePracticeComplete}
+            onSkip={handleSkipPractice}
+          />
         )}
       </div>
     </div>

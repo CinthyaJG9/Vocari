@@ -11,22 +11,16 @@ const voiceConfig = {
   volume: 1,
 };
 
-// Frases cortas del asistente
 export const assistantPhrases = {
-  welcome: "¡Hola! Soy tu asistente, vamos a aprender jugando",
-  confirmName: (name: string) => `Dijiste ${name}, ¿es correcto? Di sí o no`,
-  confirmAge: (age: number) => `${age} años, ¿correcto?`,
-  nameCorrect: "¡Qué bonito nombre!",
-  ageCorrect: "Excelente edad",
-  nameAgain: "Dime tu nombre otra vez",
-  ageAgain: "Dime tu edad otra vez",
-  sayYes: "Sí",
-  sayNo: "No",
-  profileSaved: "Perfil guardado",
-  profileDeleted: "Perfil eliminado",
-  avatarChanged: "Avatar actualizado",
-  help: "Presiona el micrófono y habla claro",
-  readingHelp: "Si no sabes leer, escúchame y repite",
+  welcome: "¡Hola! Soy tu asistente. Si no sabes leer, no te preocupes, yo te guiaré con mi voz",
+  askName: "Dime tu nombre. Puedes hablarle al micrófono",
+  needHelp: "¿Necesitas ayuda? Pídele a mamá o papá que te ayuden",
+  practiceGuide: "Vamos a practicar una palabra difícil. Escucha con atención",
+  syllableGuide: (syllable: string) => `Dilo por partes: ${syllable}`,
+  repeatAfterMe: "Repite después de mí",
+  excellent: "¡Excelente! Lo hiciste muy bien",
+  tryAgain: "Casi lo logras. Escucha de nuevo",
+  finalGuide: "Si en algún momento te pierdes, solo presiona el botón de ayuda",
 };
 
 // Lista de voces femeninas en español
