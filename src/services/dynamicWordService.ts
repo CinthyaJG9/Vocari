@@ -79,6 +79,7 @@ const OLD_WORDS: string[] = [
   "jirafa", "cebra", "tigre", "león", "elefante", "rinoceronte", "hipopótamo", "cocodrilo",
   "delfín", "ballena", "orca", "tiburón", "pingüino", "canguro", "koala", "panda", "orangután",
   "chimpancé", "gorila", "camello", "llama", "alpaca", "f lamencos", "pelícano", "colibrí",
+
   
   // Profesiones
   "arquitecto", "profesor", "médico", "bombero", "jardinero", "carpintero", "electricista",
