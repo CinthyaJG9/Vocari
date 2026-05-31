@@ -1,769 +1,470 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Home, Star, Mic, Volume2 } from "lucide-react";
+import { motion } from "motion/react";
+import { Home, Star, Mic, Loader2, ArrowRight } from "lucide-react";
 
 interface Activity2Props {
   age: number;
   stars: number;
+  userName?: string;
   onAwardStars: (amount: number) => void;
   onFinish: () => void;
   onExit: () => void;
 }
 
-// =========================
-// SILABIFICACIÓN
-// =========================
+// ============================================
+// FRASES POR EDAD
+// ============================================
 
-const syllableMap: Record<string, string[]> = {
-  "parque":    ["par", "que"],
-  "perro":     ["pe", "rro"],
-  "zanahoria": ["za", "na", "ho", "ria"],
-  "conejo":    ["co", "ne", "jo"],
-  "barco":     ["bar", "co"],
-  "mar":       ["mar"],
-  "árbol":     ["ár", "bol"],
-};
-
-const hasRSound = (word: string) => /r/i.test(word);
-
-const getSyllables = (word: string): string[] | null =>
-  syllableMap[word.toLowerCase()] ?? null;
-
-const renderSyllables = (word: string) => {
-  const syllables = getSyllables(word);
-  if (!syllables) return <span className="text-purple-700 font-bold">{word}</span>;
-  return (
-    <>
-      {syllables.map((syl, i) => {
-        const isR = /r/i.test(syl);
-        return (
-          <span key={i}>
-            <span className={isR ? "text-red-500 font-extrabold" : "text-purple-700 font-bold"}>
-              {syl}
-            </span>
-            {i < syllables.length - 1 && (
-              <span className="text-gray-400 font-light">-</span>
-            )}
-          </span>
-        );
-      })}
-    </>
-  );
-};
-
-// =========================
-// TEXTO A VOZ
-// =========================
-
-const speakWord = (word: string) => {
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(word);
-  utter.lang = "es-MX";
-  utter.rate = 0.6;
-  utter.pitch = 1.1;
-  window.speechSynthesis.speak(utter);
-};
-
-// =========================
-// HOOK: GRABACIÓN DE UNA PALABRA
-// =========================
-
-type PracticeState = "idle" | "listening" | "success" | "retry" | "done";
-
-interface WordPracticeCardProps {
-  keyword: string;
-  emoji?: string;
-  showSyllables?: boolean;
-  onPracticed: () => void;
-}
-
-const WordPracticeCard = ({
-  keyword,
-  emoji,
-  showSyllables = false,
-  onPracticed,
-}: WordPracticeCardProps) => {
-
-  const [state, setState] = useState<PracticeState>("idle");
-  const [attempt, setAttempt] = useState(0);
-  const [isSpeakingWord, setIsSpeakingWord] = useState(false);
-
-  const handleSpeak = () => {
-    if (isSpeakingWord) return;
-    setIsSpeakingWord(true);
-    speakWord(keyword);
-    // Tiempo estimado: palabra lenta ~1.5s, más margen
-    setTimeout(() => setIsSpeakingWord(false), 2200);
-  };
-
-  const handleRecord = () => {
-    if (isSpeakingWord) return;
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      alert("Tu navegador no soporta reconocimiento de voz");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 3;
-
-    setState("listening");
-    recognition.start();
-
-    recognition.onresult = (event: any) => {
-
-      const alternatives: string[] = [];
-      for (let i = 0; i < event.results[0].length; i++) {
-        alternatives.push(event.results[0][i].transcript.toLowerCase());
-      }
-
-      const heard = alternatives.join(" ");
-
-      // Para palabras con sílabas: buscar la palabra completa en lo que se oyó
-      // También aceptar si suena parecido (incluye al menos la mitad de la palabra)
-      const wordLower = keyword.toLowerCase();
-      const matched =
-        heard.includes(wordLower) ||
-        // Tolerancia: la palabra está contenida fonéticamente
-        wordLower.split("").filter(c => heard.includes(c)).length >= Math.ceil(wordLower.length * 0.6);
-
-      if (matched) {
-
-        setState("success");
-        setTimeout(() => {
-          setState("done");
-          onPracticed();
-        }, 1500);
-
-      } else if (attempt === 0) {
-
-        setState("retry");
-        setAttempt(1);
-
-      } else {
-
-        // Segundo intento fallido → igual celebrar y pasar
-        setState("success");
-        setTimeout(() => {
-          setState("done");
-          onPracticed();
-        }, 1500);
-
-      }
-    };
-
-    recognition.onerror = () => {
-      setState("idle");
-    };
-
-  };
-
-  const isDone = state === "done";
-
-  return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className={`rounded-3xl p-6 flex flex-col items-center gap-3 shadow-lg transition-colors ${
-        showSyllables ? "bg-red-50" : "bg-purple-50"
-      } ${isDone ? "ring-4 ring-green-400" : ""}`}
-    >
-
-      {/* Emoji (solo en sección de palabras fallidas) */}
-      {emoji && (
-        <span className="text-7xl">{emoji}</span>
-      )}
-
-      {/* Palabra o sílabas */}
-      {showSyllables ? (
-
-        <button
-          onClick={handleSpeak}
-          disabled={isSpeakingWord}
-          className={`flex flex-col items-center gap-1 group transition-opacity ${isSpeakingWord ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          <span className="text-2xl font-bold text-gray-600 group-hover:text-gray-800 transition-colors">
-            {keyword}
-          </span>
-          <div className="flex items-center gap-1 text-5xl font-extrabold tracking-widest">
-            {renderSyllables(keyword)}
-          </div>
-          <div className="flex items-center gap-2 text-red-400 text-base font-semibold mt-1">
-            {isSpeakingWord
-              ? <><Volume2 size={18} className="animate-pulse" /><span>Escucha...</span></>
-              : <><Volume2 size={18} /><span>Toca para escuchar</span></>
-            }
-          </div>
-        </button>
-
-      ) : (
-
-        <span className="text-4xl font-extrabold text-purple-700 tracking-wide">
-          {keyword}
-        </span>
-
-      )}
-
-      {/* Estado del micrófono */}
-      <AnimatePresence mode="wait">
-
-        {state === "idle" && (
-          <motion.div key="idle" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex flex-col items-center gap-2">
-            {isSpeakingWord && (
-              <p className="text-purple-400 text-base font-semibold">
-                Espera a que termine... 
-              </p>
-            )}
-            <motion.button
-              whileHover={isSpeakingWord ? {} : { scale: 1.08 }}
-              whileTap={isSpeakingWord ? {} : { scale: 0.92 }}
-              onClick={handleRecord}
-              disabled={isSpeakingWord}
-              className={`mt-2 rounded-full px-6 py-3 flex items-center gap-3 shadow-lg transition-opacity ${
-                isSpeakingWord
-                  ? "bg-gray-300 opacity-50 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-400 to-pink-400"
-              }`}
-            >
-              <Mic size={28} className="text-white" />
-              <span className="text-white font-bold text-xl">Repetir</span>
-            </motion.button>
-          </motion.div>
-        )}
-
-        {state === "listening" && (
-          <motion.div
-            key="listening"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            className="mt-2 flex flex-col items-center gap-2"
-          >
-            <motion.div
-              animate={{ scale: [1, 1.25, 1] }}
-              transition={{ duration: 0.6, repeat: Infinity }}
-              className="bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-4 shadow-lg"
-            >
-              <Mic size={28} className="text-white" />
-            </motion.div>
-            <span className="text-purple-600 font-semibold text-lg">
-              Escuchando...
-            </span>
-          </motion.div>
-        )}
-
-        {state === "retry" && (
-          <motion.div
-            key="retry"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            className="mt-2 flex flex-col items-center gap-3"
-          >
-            <p className="text-orange-500 font-bold text-xl text-center">
-              ¡Casi! Inténtalo una vez más 
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={handleRecord}
-              className="bg-gradient-to-r from-orange-400 to-yellow-400 rounded-full px-6 py-3 flex items-center gap-3 shadow-lg"
-            >
-              <Mic size={28} className="text-white" />
-              <span className="text-white font-bold text-xl">Otra vez</span>
-            </motion.button>
-          </motion.div>
-        )}
-
-        {state === "success" && (
-          <motion.div
-            key="success"
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.3, 1] }}
-            exit={{ scale: 0 }}
-            className="mt-2 flex flex-col items-center gap-1"
-          >
-            <span className="text-5xl">🌟</span>
-            <span className="text-green-600 font-bold text-xl">¡Muy bien!</span>
-          </motion.div>
-        )}
-
-        {state === "done" && (
-          <motion.div
-            key="done"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="mt-2"
-          >
-            <span className="text-4xl">✅</span>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
-
-    </motion.div>
-  );
-};
-
-// =========================
-// ESCENARIOS (fuera del componente para evitar re-renders)
-// =========================
-
-const scenarios = [
-  {
-    hint: "El n---- juega con la p------ en el p------",
-    keywords: ["niño", "pelota", "parque"],
-    emojis: ["👦", "⚽", "🌳"]
-  },
-  {
-    hint: "El c------ come z--------- en el c-----",
-    keywords: ["conejo", "zanahoria", "campo"],
-    emojis: ["🐰", "🥕", "🌾"]
-  },
-  {
-    hint: "La n---- lee un l----- en la e-------",
-    keywords: ["niña", "libro", "escuela"],
-    emojis: ["👧", "📖", "🏫"]
-  },
-  {
-    hint: "El p------ juega con la p------ en el p------",
-    keywords: ["perro", "pelota", "parque"],
-    emojis: ["🐶", "⚽", "🌳"]
-  },
-  {
-    hint: "El p--- nada cerca del b----- en el m---",
-    keywords: ["pez", "barco", "mar"],
-    emojis: ["🐟", "⛵", "🌊"]
-  }
+const youngPhrases = [
+  { text: "El gato duerme", image: "🐱", hint: "😴" },
+  { text: "El perro corre", image: "🐶", hint: "🏃" },
+  { text: "La niña baila", image: "👧", hint: "💃" },
+  { text: "El niño juega", image: "👦", hint: "⚽" },
+  { text: "El sol brilla", image: "☀️", hint: "✨" },
+  { text: "La luna sale", image: "🌙", hint: "🌃" },
+  { text: "El pájaro vuela", image: "🐦", hint: "🕊️" },
+  { text: "El pez nada", image: "🐟", hint: "💧" },
 ];
 
-// =========================
-// COMPONENTE PRINCIPAL
-// =========================
+const oldPhrases = [
+  { text: "El astronauta viaja al espacio", image: "👨‍🚀", hint: "Empieza con A", answer: "astronauta" },
+  { text: "La mariposa vuela entre flores", image: "🦋", hint: "Empieza con M", answer: "mariposa" },
+  { text: "El arquitecto diseña edificios", image: "🏗️", hint: "Empieza con A", answer: "arquitecto" },
+  { text: "El telescopio ve las estrellas", image: "🔭", hint: "Empieza con T", answer: "telescopio" },
+  { text: "El violinista toca el violín", image: "🎻", hint: "Empieza con V", answer: "violinista" },
+  { text: "El dinosaurio vivió en la prehistoria", image: "🦕", hint: "Empieza con D", answer: "dinosaurio" },
+];
 
-export const Activity2 = ({
-  age,
-  stars,
-  onAwardStars,
-  onFinish,
-  onExit,
-}: Activity2Props) => {
+// ============================================
+// FUNCIONES DE VOZ
+// ============================================
 
-  const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; stars: number; message: string } | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [scenario, setScenario] = useState<any>(null);
-  const [missedWords, setMissedWords] = useState<{ keyword: string; emoji: string }[]>([]);
-  const [rWords, setRWords] = useState<string[]>([]);
-  const [phase, setPhase] = useState<"game" | "reinforcement">("game");
+const speak = (text: string, rate: number = 0.75, onEnd?: () => void) => {
+  window.speechSynthesis.cancel(); // Detiene cualquier audio previo colgado
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-ES';
+  utterance.rate = rate;
+  utterance.pitch = 1.1;
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
+};
 
-  // Cuántas tarjetas ya fueron practicadas
-  const [practicedCount, setPracticedCount] = useState(0);
-  const totalCardsRef = useRef(0);
+const cancelSpeak = () => {
+  window.speechSynthesis.cancel();
+};
 
-  // Orden aleatorio de escenarios (se genera una vez)
-  const [shuffledIndices] = useState(() => {
-    const arr = [0, 1, 2, 3, 4];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  });
+// ============================================
+// COMPONENTE PARA NIÑOS PEQUEÑOS (≤7 años)
+// ============================================
 
-  // =========================
-  // CARGAR ESCENARIO
-  // =========================
+const YoungActivity = ({ phrase, image, hint, onComplete, userName }: { 
+  phrase: string; 
+  image: string; 
+  hint: string;
+  userName?: string;
+  onComplete: (stars: number) => void;
+}) => {
+  const [step, setStep] = useState<'listening' | 'speaking' | 'feedback'>('listening');
+  const [isRecording, setIsRecording] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    const idx = shuffledIndices[currentActivityIndex];
-    setScenario(scenarios[idx]);
-    setPhase("game");
-    setMissedWords([]);
-    setRWords([]);
-    setPracticedCount(0);
-    setFeedbackResult(null);
-    totalCardsRef.current = 0;
-  }, [currentActivityIndex]);
+    setFeedback("🎧 Escucha la frase...");
+    speak(`Mira la imagen. Escucha con atención: ${phrase}`, 0.75, () => {
+      setFeedback("🎤 ¡Ahora es tu turno! Repite la frase");
+      setStep('speaking');
+    });
 
-  // =========================
-  // AVANZAR TRAS REFUERZO
-  // =========================
+    return () => {
+      cancelSpeak();
+      if (recognitionRef.current) recognitionRef.current.abort();
+    };
+  }, [phrase]);
 
-  const advanceToNext = () => {
-    setPhase("game");
-    setMissedWords([]);
-    setRWords([]);
-    setPracticedCount(0);
-    totalCardsRef.current = 0;
-    if (currentActivityIndex < 4) {
-      setCurrentActivityIndex(currentActivityIndex + 1);
-    } else {
-      onFinish();
-    }
-  };
-
-  const handleCardPracticed = () => {
-    setPracticedCount(prev => prev + 1);
-  };
-
-  // =========================
-  // MICRÓFONO (JUEGO)
-  // =========================
-
-  const handleMicClick = () => {
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      alert("Tu navegador no soporta reconocimiento de voz");
-      return;
-    }
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX";
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
 
-    setIsSpeaking(true);
-    recognition.start();
+    recognition.onstart = () => setIsRecording(true);
 
     recognition.onresult = (event: any) => {
+      const spoken = event.results[0][0].transcript.toLowerCase();
+      setIsRecording(false);
 
-      const transcript = event.results[0][0].transcript.toLowerCase();
-      setIsSpeaking(false);
+      const targetNorm = phrase.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const spokenNorm = spoken.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      const spokenWords = transcript.split(" ");
-      const matchedKeywords = scenario.keywords.filter(
-        (word: string) => spokenWords.includes(word.toLowerCase())
-      );
-      const matchedCount = matchedKeywords.length;
+      let stars = 0;
 
-      const missed = scenario.keywords
-        .map((kw: string, i: number) => ({ keyword: kw, emoji: scenario.emojis[i] }))
-        .filter(({ keyword }: { keyword: string }) =>
-          !spokenWords.includes(keyword.toLowerCase())
-        );
-
-      const withR = scenario.keywords.filter(hasRSound);
-
-      // Calcular total de tarjetas para el refuerzo
-      const uniqueRWords = withR.filter(
-        (w: string) => !missed.find((m: { keyword: string }) => m.keyword === w)
-      );
-      totalCardsRef.current = missed.length + uniqueRWords.length;
-
-      const goToReinforcement = () => {
-        if (missed.length > 0 || withR.length > 0) {
-          setMissedWords(missed);
-          setRWords(withR);
-          setPhase("reinforcement");
-        } else {
-          advanceToNext();
-        }
-      };
-
-      if (matchedCount === 3) {
-
-        onAwardStars(3);
-        setFeedbackResult({ correct: true, stars: 3, message: "¡Excelente!  Dijiste toda la frase muy bien" });
-        setShowFeedback(true);
-        setTimeout(() => { setShowFeedback(false); goToReinforcement(); }, 3000);
-
-      } else if (matchedCount === 2) {
-
-        onAwardStars(2);
-        setFeedbackResult({ correct: true, stars: 2, message: "¡Muy bien!  Solo te faltó una palabra" });
-        setShowFeedback(true);
-        setTimeout(() => { setShowFeedback(false); goToReinforcement(); }, 3000);
-
+      if (spokenNorm === targetNorm || targetNorm.includes(spokenNorm) || spokenNorm.includes(targetNorm)) {
+        stars = 3;
+        setFeedback("¡Excelente! 🎉");
+        setStep('feedback');
+        speak(`¡Muy bien, ${userName || "amigo"}! Lo dijiste perfecto.`, 0.8, () => onComplete(stars));
+      } else if (attempts === 0) {
+        setAttempts(1);
+        setFeedback(`Escuché "${spoken}". ¡Intentémoslo una vez más!`);
+        setStep('listening');
+        speak(`Casi, escuché "${spoken}". Vamos a repetir. Escucha: ${phrase}`, 0.75, () => {
+          setStep('speaking');
+          setFeedback("🎤 Repite la frase");
+        });
       } else {
-
-        setFeedbackResult({ correct: false, stars: 0, message: "¡Buen intento!  Vamos a practicar" });
-        setShowFeedback(true);
-        setTimeout(() => { setShowFeedback(false); goToReinforcement(); }, 2000);
-
+        stars = 1;
+        setFeedback("¡Bien intentado! ✨");
+        setStep('feedback');
+        speak(`Buen intento. La frase era "${phrase}". ¡Vamos a la siguiente!`, 0.8, () => onComplete(stars));
       }
-
     };
 
     recognition.onerror = () => {
-      setIsSpeaking(false);
-      alert("No se pudo reconocer la voz ");
+      setIsRecording(false);
+      setFeedback("No logré escucharte. ¡Inténtalo de nuevo! 🎤");
+      setStep('speaking');
     };
 
+    recognition.start();
+    recognitionRef.current = recognition;
   };
 
-  // =========================
-  // RENDER — FASE REFUERZO
-  // =========================
+  return (
+    <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center">
+      <div className="bg-purple-50 rounded-2xl p-8 mb-6 flex justify-center items-center gap-4">
+        <span className="text-8xl">{image}</span>
+        <span className="text-5xl">{hint}</span>
+      </div>
 
-  if (phase === "reinforcement") {
+      <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl p-5 mb-6">
+        <p className="text-2xl text-purple-800 font-bold">{phrase}</p>
+      </div>
 
-    // Palabras con R que NO estén ya en missedWords
-    const rOnlyWords = rWords.filter(
-      w => !missedWords.find(m => m.keyword === w)
-    );
+      <div className="mb-6 min-h-[30px]">
+        <p className="text-lg text-gray-600 font-medium">{feedback}</p>
+      </div>
 
-    const allPracticed = practicedCount >= totalCardsRef.current && totalCardsRef.current > 0;
+      {step === 'speaking' && (
+        <button
+          onClick={startListening}
+          disabled={isRecording}
+          className={`${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500 hover:bg-green-600'} text-white rounded-full px-10 py-5 text-xl font-bold shadow-xl flex items-center gap-3 mx-auto transition-all`}
+        >
+          <Mic size={24} />
+          {isRecording ? "Escuchando..." : "🎙️ Hablar ahora"}
+        </button>
+      )}
 
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="max-w-6xl w-full"
-      >
-
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
-          <button
-            onClick={onExit}
-            className="bg-white rounded-full px-6 py-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-3"
-          >
-            <Home size={32} className="text-purple-600" />
-            <span className="text-2xl font-semibold text-purple-600">Menú</span>
-          </button>
-          <div className="flex items-center gap-3 bg-white rounded-full px-6 py-4 shadow-lg">
-            <Star className="text-yellow-500 fill-yellow-500" size={36} />
-            <span className="text-3xl font-bold text-purple-600">{stars}</span>
-          </div>
+      {step === 'listening' && (
+        <div className="flex justify-center items-center gap-2 text-purple-600 font-medium">
+          <Loader2 className="animate-spin" size={24} />
+          <span>El asistente está hablando...</span>
         </div>
+      )}
+    </div>
+  );
+};
 
-        <div className="bg-white rounded-3xl p-12 shadow-2xl space-y-10">
+// ============================================
+// COMPONENTE PARA NIÑOS GRANDES (≥8 años)
+// ============================================
 
-          {/* SECCIÓN: PALABRAS FALLIDAS */}
-          {missedWords.length > 0 && (
-            <div>
-              <h2 className="text-4xl font-bold text-center text-gray-800 mb-2">
-                ¡Practiquemos estas palabras! 
-              </h2>
-              <p className="text-center text-xl text-purple-500 mb-8">
-                Lee cada palabra y presiona el micrófono para repetirla 
-              </p>
-              <div className={`grid gap-6 max-w-3xl mx-auto ${missedWords.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                {missedWords.map(({ keyword, emoji }, i) => (
-                  <WordPracticeCard
-                    key={`missed-${i}`}
-                    keyword={keyword}
-                    emoji={emoji}
-                    showSyllables={false}
-                    onPracticed={handleCardPracticed}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+const OldActivity = ({ phrase, image, hint, answer, onComplete, userName }: { 
+  phrase: string; 
+  image: string; 
+  hint: string;
+  answer: string;
+  userName?: string;
+  onComplete: (stars: number) => void;
+}) => {
+  const [step, setStep] = useState<'listening' | 'speaking' | 'feedback'>('listening');
+  const [isRecording, setIsRecording] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const recognitionRef = useRef<any>(null);
 
-          {/* DIVISOR */}
-          {missedWords.length > 0 && rWords.length > 0 && (
-            <hr className="border-purple-100" />
-          )}
+  // Genera pistas visuales limpias: Ej: "a _ _ _ _ _ _ _ _ a" para astronauta
+  const getVisualHint = () => {
+    if (answer.length <= 2) return answer;
+    const middle = " _ ".repeat(answer.length - 2);
+    return `${answer[0]}${middle}${answer[answer.length - 1]}`;
+  };
 
-          {/* SECCIÓN: PALABRAS CON R */}
-          {rWords.length > 0 && (
-            <div>
-              <h2 className="text-4xl font-bold text-center text-gray-800 mb-2">
-                ¡Atención a la <span className="text-red-500">R</span>! 👂
-              </h2>
-              <p className="text-center text-xl text-purple-500 mb-8">
-                Toca la palabra para escucharla, luego repítela con el micrófono 
-              </p>
-              <div className={`grid gap-6 max-w-3xl mx-auto ${rWords.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                {rWords.map((word, i) => (
-                  <WordPracticeCard
-                    key={`r-${i}`}
-                    keyword={word}
-                    showSyllables={true}
-                    onPracticed={handleCardPracticed}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+  useEffect(() => {
+    setFeedback("🔊 Escucha la frase incompleta...");
+    // FIX: Reemplaza la respuesta por "una palabra misteriosa" en la voz para evitar que diga "barra baja"
+    const verbalPhrase = phrase.replace(answer, "una palabra oculta");
+    
+    speak(`Observa la imagen y completa la oración. Escucha: ${verbalPhrase}. ¿Qué palabra falta?`, 0.75, () => {
+      setFeedback("🎤 Di únicamente la palabra que falta");
+      setStep('speaking');
+    });
 
-          {/* BOTÓN CONTINUAR */}
-          <div className="flex flex-col items-center gap-3 pt-4">
-            <AnimatePresence>
-              {allPracticed && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-2xl text-green-600 font-bold"
-                >
-                  ¡Excelente práctica! 
-                </motion.p>
+    return () => {
+      cancelSpeak();
+      if (recognitionRef.current) recognitionRef.current.abort();
+    };
+  }, [phrase]);
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+
+    recognition.onresult = (event: any) => {
+      const spoken = event.results[0][0].transcript.toLowerCase();
+      setIsRecording(false);
+
+      const targetNorm = answer.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const spokenNorm = spoken.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      let stars = 0;
+
+      if (spokenNorm === targetNorm || targetNorm.includes(spokenNorm) || spokenNorm.includes(targetNorm)) {
+        stars = 3;
+        setFeedback("¡Excelente respuesta! ✨");
+        setStep('feedback');
+        speak(`¡Increíble, ${userName || "amigo"}! La palabra es exactamenta "${answer}".`, 0.8, () => onComplete(stars));
+      } else if (attempts === 0) {
+        setAttempts(1);
+        setFeedback(`Dijiste "${spoken}". ¡Inténtalo de nuevo!`);
+        setStep('listening');
+        speak(`Mencionaste "${spoken}". Una pista extra: ${hint}. Di la palabra.`, 0.75, () => {
+          setStep('speaking');
+          setFeedback("🎤 Di la palabra correcta");
+        });
+      } else {
+        stars = 1;
+        setFeedback("¡Buen intento! 💡");
+        setStep('feedback');
+        speak(`Buen esfuerzo. La respuesta correcta era "${answer}". Sigamos adelante.`, 0.8, () => onComplete(stars));
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsRecording(false);
+      setFeedback("No capturé el audio. Intenta hablar claro hacia tu micrófono. 🎤");
+      setStep('speaking');
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+
+  // Reemplazamos la palabra misteriosa en la pantalla con el formato dinámico de letras
+  const displayPhrase = phrase.replace(answer, "_____");
+
+  return (
+    <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center">
+      <div className="bg-purple-50 rounded-2xl p-6 mb-6">
+        <span className="text-7xl">{image}</span>
+      </div>
+
+      <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl p-5 mb-4">
+        <p className="text-2xl text-purple-900 font-semibold leading-relaxed">
+          {displayPhrase.split("_____").map((part, i) => (
+            <span key={i}>
+              {part}
+              {i < displayPhrase.split("_____").length - 1 && (
+                <span className="inline-block px-3 py-1 mx-2 bg-white rounded-xl text-purple-700 tracking-widest font-mono font-black border-2 border-purple-300 shadow-sm animate-pulse">
+                  {getVisualHint()}
+                </span>
               )}
-            </AnimatePresence>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={advanceToNext}
-              className={`text-white text-3xl font-bold px-16 py-6 rounded-full shadow-2xl transition-all ${
-                allPracticed
-                  ? "bg-gradient-to-r from-green-400 to-emerald-500"
-                  : "bg-gradient-to-r from-purple-400 to-pink-400"
-              }`}
-            >
-              {allPracticed ? "¡Continuar! " : "Saltar →"}
-            </motion.button>
-            {!allPracticed && (
-              <p className="text-gray-400 text-lg">
-                Practica todas las palabras para continuar 
-              </p>
-            )}
+            </span>
+          ))}
+        </p>
+      </div>
+
+      <div className="mb-4 bg-yellow-50 inline-block px-4 py-2 rounded-full border border-yellow-200">
+        <p className="text-yellow-700 text-sm font-bold">💡 Pista: {hint}</p>
+      </div>
+
+      <div className="mb-6 min-h-[24px]">
+        <p className="text-gray-700 font-medium">{feedback}</p>
+      </div>
+
+      {step === 'speaking' && (
+        <button
+          onClick={startListening}
+          disabled={isRecording}
+          className={`${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500 hover:bg-green-600'} text-white rounded-full px-10 py-5 text-xl font-bold shadow-xl flex items-center gap-3 mx-auto transition-all`}
+        >
+          <Mic size={24} />
+          {isRecording ? "Escuchando..." : "🎙️ Decir palabra"}
+        </button>
+      )}
+
+      {step === 'listening' && (
+        <div className="flex justify-center items-center gap-2 text-purple-600 font-medium">
+          <Loader2 className="animate-spin" size={24} />
+          <span>Preparando el ejercicio...</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// COMPONENTE PRINCIPAL (Activity2)
+// ============================================
+
+export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity2Props) => {
+  const isYoung = age <= 7;
+  const phrases = isYoung ? youngPhrases : oldPhrases;
+
+  const [shuffledPhrases] = useState(() => {
+    const shuffled = [...phrases].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3); // Cambiado a un filtro estándar rápido
+  });
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showActivity, setShowActivity] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+
+  const currentPhrase = shuffledPhrases[currentIndex];
+
+  const advanceToNext = () => {
+    if (currentIndex + 1 < shuffledPhrases.length) {
+      setCurrentIndex(prev => prev + 1);
+      setShowActivity(true);
+    } else {
+      setSessionCompleted(true);
+    }
+  };
+
+  const handleComplete = (starsEarned: number) => {
+    setShowActivity(false);
+    if (starsEarned > 0) onAwardStars(starsEarned);
+    advanceToNext();
+  };
+
+  const startSession = () => {
+    setShowActivity(true);
+    speak(`¡Hola ${userName || "amigo"}! Vamos a practicar ${shuffledPhrases.length} divertidas frases.`, 0.8);
+  };
+
+  // Pantalla Inicial de Introducción
+  if (!showActivity && !sessionCompleted && currentIndex === 0) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md hover:bg-gray-50">
+              <Home size={24} className="text-purple-600" />
+            </button>
+            <div className="flex items-center gap-2 bg-white rounded-full px-5 py-2 shadow-lg">
+              <Star className="text-yellow-500 fill-yellow-500" size={24} />
+              <span className="text-xl font-bold text-purple-600">{stars}</span>
+            </div>
           </div>
 
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center">
+            <span className="text-8xl mb-4 block">{isYoung ? "🎤" : "📝"}</span>
+            <h3 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4">
+              {isYoung ? "Repite la frase" : "Completa la frase"}
+            </h3>
+            <p className="text-gray-500 mb-8 max-w-lg mx-auto">
+              {isYoung 
+                ? "Escucha atentamente el enunciado que te diga el asistente y repítelo usando el micrófono." 
+                : "Escucha la oración completa, mira la palabra misteriosa y descubre cuál falta guiándote de la primera y última letra."}
+            </p>
+            <div className="bg-purple-50 rounded-2xl p-4 mb-8 inline-block px-10">
+              <p className="text-xl font-bold text-purple-600">{shuffledPhrases.length} Ejercicios en esta ronda</p>
+            </div>
+            <button 
+              onClick={startSession} 
+              className="bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full px-10 py-5 text-2xl font-bold shadow-xl flex items-center gap-3 mx-auto hover:opacity-95 transition-opacity"
+            >
+              <ArrowRight size={28} /> Comenzar
+            </button>
+          </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
-  // =========================
-  // RENDER — FASE JUEGO
-  // =========================
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="max-w-6xl w-full"
-    >
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
-        <button
-          onClick={onExit}
-          className="bg-white rounded-full px-6 py-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-3"
-        >
-          <Home size={32} className="text-purple-600" />
-          <span className="text-2xl font-semibold text-purple-600">Menú</span>
-        </button>
-        <div className="flex items-center gap-3 bg-white rounded-full px-6 py-4 shadow-lg">
-          <Star className="text-yellow-500 fill-yellow-500" size={36} />
-          <span className="text-3xl font-bold text-purple-600">{stars}</span>
+  // Pantalla de Felicitaciones y Cierre
+  if (sessionCompleted) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 text-center">
+          <span className="text-8xl mb-4 block">🎉</span>
+          <h3 className="text-4xl font-bold text-gray-800 mb-2">¡Completado!</h3>
+          <p className="text-gray-500 mb-6">Has hecho un maravilloso trabajo de lectura y habla.</p>
+          <div className="flex justify-center items-center gap-2 bg-purple-50 rounded-2xl py-4 mb-8">
+            <Star className="text-yellow-500 fill-yellow-500" size={32} />
+            <span className="text-3xl font-bold text-purple-700">{stars} Estrellas Totales</span>
+          </div>
+          <button 
+            onClick={onFinish} 
+            className="bg-green-500 hover:bg-green-600 text-white rounded-full px-10 py-4 text-xl font-bold shadow-xl transition-colors w-full"
+          >
+            Continuar al Menú
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* CONTENIDO */}
-      <motion.div
-        key={currentActivityIndex}
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-3xl p-12 shadow-2xl"
-      >
-
-        <h2 className="text-5xl font-bold text-center text-gray-800 mb-4">
-          ¡Completa la frase!
-        </h2>
-        <p className="text-center text-2xl text-purple-600 mb-12">
-          Observa las imágenes y di la frase 
-        </p>
-
-        {/* IMÁGENES */}
-        {scenario && (
-          <div className="grid grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
-            {scenario.emojis.map((emoji: string, index: number) => (
-              <motion.div
-                key={index}
-                initial={{ scale: 0, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="aspect-square rounded-3xl shadow-xl bg-white p-6 flex items-center justify-center"
-              >
-                <span className="text-9xl select-none">{emoji}</span>
-              </motion.div>
-            ))}
+  // Renderizar la actividad en ejecución
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+      <div className="max-w-3xl mx-auto">
+        {/* Subheader interno */}
+        <div className="flex justify-between items-center mb-6">
+          <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md hover:bg-gray-50">
+            <Home size={24} className="text-purple-600" />
+          </button>
+          <div className="flex items-center gap-4">
+            <div className="bg-white px-4 py-2 rounded-full border border-purple-200 shadow-sm font-bold text-purple-700">
+              Progreso: {currentIndex + 1} / {shuffledPhrases.length}
+            </div>
+            <div className="flex items-center gap-2 bg-white rounded-full px-5 py-2 shadow-lg">
+              <Star className="text-yellow-500 fill-yellow-500" size={24} />
+              <span className="text-xl font-bold text-purple-600">{stars}</span>
+            </div>
           </div>
+        </div>
+
+        {/* 
+          Añadir el atributo key={currentIndex} es el secreto crítico:
+          Fuerza a React a desmontar y montar el juego de forma nativa por ronda.
+          Elimina bugs de estados heredados de la ronda anterior por completo.
+        */}
+        {showActivity && (
+          isYoung ? (
+            <YoungActivity
+              key={currentIndex}
+              phrase={currentPhrase.text}
+              image={currentPhrase.image}
+              hint={currentPhrase.hint}
+              userName={userName}
+              onComplete={handleComplete}
+            />
+          ) : (
+            <OldActivity
+              key={currentIndex}
+              phrase={currentPhrase.text}
+              image={currentPhrase.image}
+              hint={currentPhrase.hint}
+              answer={currentPhrase.answer}
+              userName={userName}
+              onComplete={handleComplete}
+            />
+          )
         )}
-
-        {/* PISTA */}
-        {scenario && (
-          <div className="bg-purple-100 rounded-3xl p-8 mb-10 max-w-4xl mx-auto">
-            <p className="text-3xl text-center font-semibold text-purple-700">
-              "{scenario.hint}"
-            </p>
-          </div>
-        )}
-
-        {/* BOTÓN MIC */}
-        {!isSpeaking && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-6">
-            <p className="text-3xl font-semibold text-purple-600">Presiona para hablar </p>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleMicClick}
-              className="bg-gradient-to-r from-red-400 to-pink-400 rounded-full p-12 shadow-2xl"
-            >
-              <Mic size={80} className="text-white" />
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* ESCUCHANDO */}
-        {isSpeaking && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-6">
-            <p className="text-4xl font-semibold text-purple-600">Te estoy escuchando...</p>
-            <motion.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 0.6, repeat: Infinity }}
-              className="bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-12 shadow-2xl"
-            >
-              <Mic size={80} className="text-white" />
-            </motion.div>
-          </motion.div>
-        )}
-
-      </motion.div>
-
-      {/* FEEDBACK */}
-      {showFeedback && feedbackResult && (
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-        >
-          <div className={`rounded-3xl px-16 py-10 shadow-2xl flex flex-col items-center gap-4 ${
-            feedbackResult.correct
-              ? "bg-green-400"
-              : "bg-purple-500"
-          }`}>
-
-            {feedbackResult.stars > 0 && (
-              <div className="flex gap-3">
-                {Array.from({ length: feedbackResult.stars }).map((_, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ scale: 0, y: -20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ delay: i * 0.15 }}
-                    className="text-6xl"
-                  >
-                    ⭐
-                  </motion.span>
-                ))}
-              </div>
-            )}
-
-            <p className="text-4xl font-extrabold text-white text-center">
-              {feedbackResult.message}
-            </p>
-
-          </div>
-        </motion.div>
-      )}
-
-    </motion.div>
+      </div>
+    </div>
   );
 };
