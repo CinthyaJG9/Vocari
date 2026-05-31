@@ -1,4 +1,3 @@
-// API de palabras dinámica - SOLO ESPAÑOL
 const PIXABAY_API_KEY = '55853181-518a1bfebb9d59fe630abdfc6';
 
 // ============================================
@@ -32,91 +31,23 @@ const ADVERBS_MENTE = [
 
 // PARA NIÑOS PEQUEÑOS (3-6 años) 
 const YOUNG_WORDS: string[] = [
-  // Animales domésticos y de granja
   "gato", "perro", "pato", "pollo", "vaca", "cerdo", "oveja", "cabra", "conejo", "ratón",
   "pez", "lobo", "foca", "oso", "zorro", "ciervo", "rana", "tortuga", "caracol", "abeja",
-  "mariposa", "araña", "hormiga", "mosca", "grillo", "saltamontes", "luciérnaga", "libélula",
-  
-  // Frutas
-  "pera", "uva", "kiwi", "coco", "mora", "higo", "papa", "maiz", "manzana", "banana",
-  "naranja", "fresa", "melón", "sandía", "cereza", "ciruela", "higo", "granada", "mango",
-  
-  // Objetos de casa
-  "casa", "flor", "sol", "luna", "cama", "mesa", "silla", "luz", "muro", "ventana",
-  "puerta", "techo", "piso", "pared", "espejo", "cuadro", "lámpara", "alfombra", "cortina",
-  "juguete", "pelota", "muñeca", "coche", "tren", "globo", "burbuja", "rompecabezas", "bloque",
-  
-  // Colores
-  "rojo", "azul", "verde", "rosa", "gris", "beige", "ocre", "vino", "amarillo", "morado",
-  "naranja", "café", "negro", "blanco", "plateado", "dorado", "turquesa", "lila", "fucsia",
-  
-  // Naturaleza
-  "río", "mar", "nube", "árbol", "hoja", "piedra", "arena", "cielo", "montaña", "valle",
-  "colina", "campo", "bosque", "jardín", "huerta", "granja", "playa", "isla", "lago", "estanque",
-  
-  // Transporte
-  "carro", "avión", "barco", "bicicleta", "tren", "bus", "moto", "camión", "helicóptero", "globo",
-  
-  // Familia
-  "mamá", "papá", "hermano", "hermana", "abuelo", "abuela", "tío", "tía", "primo", "prima",
-  "bebé", "niño", "niña", "amigo", "amiga", "vecino", "vecina", "maestro", "doctor",
-  
-  // Comida
-  "pan", "leche", "queso", "huevo", "sopa", "arroz", "frijol", "galleta", "pastel", "helado",
-  "chocolate", "caramelo", "dulce", "paleta", "bombón", "mermelada", "miel", "cereal",
-  
-  // Verbos básicos (en sustantivo)
-  "salto", "brinco", "vuelo", "nado", "canto", "baile", "juego", "corro", "subo", "bajo",
-  
-  // Adjetivos básicos
-  "feliz", "triste", "grande", "pequeño", "largo", "corto", "alto", "bajo", "gordo", "flaco",
-  "rápido", "lento", "suave", "duro", "caliente", "frío", "dulce", "salado", "lindo", "feo"
+  "mariposa", "araña", "hormiga", "mosca", "grillo", "pera", "uva", "kiwi", "coco", "mora",
+  "casa", "flor", "sol", "luna", "cama", "mesa", "silla", "luz", "rojo", "azul",
+  "verde", "rosa", "río", "mar", "nube", "árbol", "hoja", "carro", "avión", "barco",
+  "mamá", "papá", "hermano", "hermana", "abuelo", "abuela", "niño", "niña", "feliz", "triste"
 ];
 
 // PARA NIÑOS GRANDES (7-12 años) 
 const OLD_WORDS: string[] = [
-  // Animales exóticos
-  "jirafa", "cebra", "tigre", "león", "elefante", "rinoceronte", "hipopótamo", "cocodrilo",
-  "delfín", "ballena", "orca", "tiburón", "pingüino", "canguro", "koala", "panda", "orangután",
-  "chimpancé", "gorila", "camello", "llama", "alpaca", "f lamencos", "pelícano", "colibrí",
-  
-  // Profesiones
-  "arquitecto", "profesor", "médico", "bombero", "jardinero", "carpintero", "electricista",
-  "plomero", "policía", "abogado", "juez", "periodista", "escritor", "poeta", "artista",
-  "músico", "bailarín", "actor", "director", "científico", "investigador", "astronauta",
-  
-  // Instrumentos musicales
-  "guitarra", "piano", "violín", "violonchelo", "tambor", "batería", "flauta", "arpa",
-  "acordeón", "armónica", "saxofón", "trompeta", "trombón", "clarinete", "oboe", "fagot",
-  
-  // Planetas y espacio
-  "marte", "júpiter", "saturno", "neptuno", "venus", "mercurio", "urano", "tierra",
-  "asteroide", "cometa", "galaxia", "nebulosa", "telescopio", "astronomía", "cosmonauta",
-  
-  // Naturaleza avanzada
-  "mariposa", "estrella", "montaña", "volcán", "océano", "desierto", "selva", "jungla",
-  "cascada", "glaciar", "fiordo", "acantilado", "caverna", "estalactita", "estalagmita",
-  
-  // Ciencia y tecnología
-  "microscopio", "telescopio", "termómetro", "barómetro", "compás", "brújula", "reloj",
-  "computadora", "televisión", "teléfono", "tableta", "robótica", "programación", "algoritmo",
-  "química", "física", "biología", "geología", "astronomía", "matemáticas", "geometría",
-  
-  // Geografía
-  "continente", "península", "istmo", "archipiélago", "cordillera", "meseta", "llanura",
-  "delta", "estuario", "fiordo", "glaciar", "manglar", "sabana", "tundra", "taiga",
-  
-  // Historia y cultura
-  "pirámide", "castillo", "catedral", "monumento", "escultura", "pintura", "mural",
-  "literatura", "poesía", "leyenda", "mitología", "filosofía", "arqueología", "paleontología",
-  
-  // Deportes
-  "fútbol", "baloncesto", "tenis", "natación", "atletismo", "gimnasia", "ciclismo",
-  "montañismo", "escalada", "surf", "esquí", "patinaje", "boxeo", "karate", "judo",
-  
-  // Emociones avanzadas
-  "alegría", "tristeza", "enojo", "miedo", "sorpresa", "nervios", "ansiedad", "emoción",
-  "ilusión", "esperanza", "frustración", "satisfacción", "orgullo", "vergüenza", "culpa"
+  "jirafa", "cebra", "tigre", "león", "elefante", "delfín", "ballena", "pingüino", "canguro",
+  "arquitecto", "profesor", "médico", "bombero", "jardinero", "carpintero",
+  "guitarra", "piano", "violín", "tambor", "flauta", "arpa",
+  "marte", "júpiter", "saturno", "neptuno", "venus", "mercurio",
+  "mariposa", "estrella", "montaña", "volcán", "océano", "desierto", "selva",
+  "microscopio", "telescopio", "computadora", "televisión", "continente", "pirámide",
+  "fútbol", "baloncesto", "alegría", "tristeza", "sorpresa", "emoción"
 ];
 
 // ============================================
@@ -125,6 +56,58 @@ const OLD_WORDS: string[] = [
 
 let usedWords: string[] = [];
 const imageCache = new Map<string, string>();
+
+// ============================================
+// FUNCIONES DE VOZ (PARA ACTIVITY2)
+// ============================================
+
+export const speak = (text: string, rate: number = 0.7, onEnd?: () => void) => {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-ES';
+  utterance.rate = rate;
+  utterance.pitch = 1.1;
+  utterance.volume = 1;
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
+};
+
+export const cancelSpeak = () => {
+  window.speechSynthesis.cancel();
+};
+
+export const listen = (onResult: (text: string) => void, onError?: (error: string) => void) => {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    onError?.("Tu navegador no soporta reconocimiento de voz");
+    return null;
+  }
+  
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'es-ES';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  
+  recognition.onstart = () => {
+    console.log("🎤 Escuchando...");
+  };
+  
+  recognition.onresult = (event: any) => {
+    const text = event.results[0][0].transcript;
+    onResult(text);
+  };
+  
+  recognition.onerror = (event: any) => {
+    console.error("Error:", event.error);
+    let msg = "No te entendí";
+    if (event.error === 'no-speech') msg = "No escuché nada. Habla más fuerte";
+    if (event.error === 'not-allowed') msg = "Permite el micrófono en tu navegador";
+    onError?.(msg);
+  };
+  
+  recognition.start();
+  return recognition;
+};
 
 // ============================================
 // FUNCIÓN PRINCIPAL 
@@ -203,7 +186,6 @@ export const getRealImage = async (word: string): Promise<string> => {
     const data = await response.json();
     
     if (data.hits && data.hits.length > 0) {
-      // Aleatorio para no repetir siempre la misma
       const randomIndex = Math.floor(Math.random() * Math.min(data.hits.length, 10));
       const imageUrl = data.hits[randomIndex].webformatURL;
       imageCache.set(word, imageUrl);
@@ -230,9 +212,10 @@ export const preloadImages = async (words: string[]): Promise<void> => {
   await Promise.all(words.map(word => getRealImage(word)));
 };
 
+// ============================================
+// NORMALIZACIÓN DE TEXTO
+// ============================================
 
-
-// Normalizar texto (eliminar acentos, puntuación, espacios)
 const normalizeText = (text: string): string => {
   return text
     .toLowerCase()
@@ -242,6 +225,10 @@ const normalizeText = (text: string): string => {
     .replace(/[^\w\s]/g, "")          
     .replace(/\s+/g, " ");            
 };
+
+// ============================================
+// EVALUACIÓN DE PRONUNCIACIÓN
+// ============================================
 
 export const evaluateSpeech = (spoken: string, expected: string, userName?: string) => {
   const cleanSpoken = normalizeText(spoken);
@@ -258,8 +245,6 @@ export const evaluateSpeech = (spoken: string, expected: string, userName?: stri
     };
   }
   
-  // CASI CORRECTO: una letra de diferencia o plural
-
   if (cleanSpoken.includes(cleanExpected) || cleanExpected.includes(cleanSpoken)) {
     const isPlural = cleanSpoken === cleanExpected + 's' || cleanSpoken === cleanExpected + 'es';
     
@@ -284,7 +269,6 @@ export const evaluateSpeech = (spoken: string, expected: string, userName?: stri
     };
   }
   
-  // Calcular similitud fonética
   let matches = 0;
   const maxLength = Math.max(cleanSpoken.length, cleanExpected.length);
   for (let i = 0; i < Math.min(cleanSpoken.length, cleanExpected.length); i++) {
@@ -305,7 +289,6 @@ export const evaluateSpeech = (spoken: string, expected: string, userName?: stri
     };
   }
   
-  // COMPLETAMENTE INCORRECTO
   return {
     correct: false,
     stars: 0,
@@ -317,13 +300,8 @@ export const evaluateSpeech = (spoken: string, expected: string, userName?: stri
 };
 
 // ============================================
-// REINICIAR HISTORIAL
+// DIFICULTAD DE PALABRA
 // ============================================
-
-export const resetWordHistory = () => {
-  usedWords = [];
-  imageCache.clear();
-};
 
 export const getWordDifficulty = (word: string, age: number): 'easy' | 'medium' | 'hard' => {
   const length = word.length;
@@ -341,17 +319,18 @@ export const getWordDifficulty = (word: string, age: number): 'easy' | 'medium' 
   }
 };
 
-// Separar palabra en sílabas para enseñanza
+// ============================================
+// SEPARAR EN SÍLABAS
+// ============================================
+
 export const syllabify = (word: string): string[] => {
   const syllables: string[] = [];
   const wordLower = word.toLowerCase();
   
-  // Reglas básicas de separación silábica en español
   const pattern = /([bcdfghjklmnñpqrstvwxyz]*[aeiouáéíóú](?:[bcdfghjklmnñpqrstvwxyz]*[aeiouáéíóú])*)/gi;
   const matches = wordLower.match(pattern);
   
   if (matches && matches.length > 0) {
-    // Filtrar vacíos y limpiar
     for (const match of matches) {
       if (match.trim().length > 0) {
         syllables.push(match);
@@ -359,7 +338,6 @@ export const syllabify = (word: string): string[] => {
     }
   }
   
-  // Si no se pudo silabificar, dividir cada 2 letras
   if (syllables.length === 0) {
     for (let i = 0; i < word.length; i += 2) {
       syllables.push(word.slice(i, i + 2));
@@ -367,4 +345,13 @@ export const syllabify = (word: string): string[] => {
   }
   
   return syllables;
+};
+
+// ============================================
+// REINICIAR HISTORIAL
+// ============================================
+
+export const resetWordHistory = () => {
+  usedWords = [];
+  imageCache.clear();
 };
