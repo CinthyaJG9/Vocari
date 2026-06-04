@@ -94,15 +94,15 @@ let usedWords: string[] = [];
 const imageCache = new Map<string, string>();
 
 // ============================================
-// FUNCIONES DE VOZ (PARA ACTIVITY2)
+// FUNCIONES DE VOZ 
 // ============================================
 
-export const speak = (text: string, rate: number = 0.7, onEnd?: () => void) => {
+export const speak = (text: string, rate: number = 0.75, onEnd?: () => void) => {
+  window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'es-ES';
   utterance.rate = rate;
   utterance.pitch = 1.1;
-  utterance.volume = 1;
   if (onEnd) utterance.onend = onEnd;
   window.speechSynthesis.speak(utterance);
 };

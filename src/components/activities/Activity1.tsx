@@ -113,7 +113,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
       if (difficulty === 'hard') {
         // Palabra difícil: forzar práctica de pronunciación
         setFeedbackMessage("¡Correcto! Ahora vamos a practicar cómo se dice");
-        onAwardStars(1); // Estrella por acertar la imagen
+        onAwardStars(1); 
         
         setTimeout(() => {
           setShowFeedback(false);
