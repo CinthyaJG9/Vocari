@@ -65,6 +65,12 @@
         {soundQuery: "pizza", image: "pizza", text: "Pizza" },
         {soundQuery: "ice cream", image: "icecream", text: "Helado" },
         {soundQuery: "balloon pop", image: "balloon", text: "Globo" },
+            {soundQuery: "pirate", image: "pirate", text: "Pirata" },
+            {soundQuery: "dragon", image: "dragon", text: "Dragón" },
+            {soundQuery: "hero", image: "hero", text: "Héroe" },
+            {soundQuery: "vampire", image: "vampire", text: "Vampiro" },
+            {soundQuery: "zombie", image: "zombie", text: "Zombi" },
+            {soundQuery: "wizard", image: "wizard", text: "Mago" }
     ];
 
     // Buscar sonido en Freesound

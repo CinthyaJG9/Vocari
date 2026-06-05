@@ -1,5 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { speakWarm, cancelVoice, assistantPhrases, isVoiceSupported } from '../services/warmVoiceService';
+import { speak, speakWithQueue, cancelSpeak as cancelVoice, assistantPhrases } from "../services/warmVoiceService";
+
+// Verificar si el navegador soporta voz
+const isVoiceSupported = (): boolean => {
+  return 'speechSynthesis' in window;
+};
 
 export const useWarmAssistant = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -26,7 +31,9 @@ export const useWarmAssistant = () => {
     
     setIsSpeaking(true);
     try {
-      await speakWarm(text);
+      await speakWithQueue(text);
+    } catch (error) {
+      console.error("Error al hablar:", error);
     } finally {
       setIsSpeaking(false);
     }

@@ -3,7 +3,8 @@ import { motion } from "motion/react";
 import { Mic, Home, Volume2, HelpCircle, Users, Edit2 } from "lucide-react";
 import { RealImage } from "../common/RealImage";
 import { EditNameModal } from "../common/EditNameModal";
-import { speak, listen } from "../../services/voiceService";
+import { speak, speakWithQueue, cancelSpeak, assistantPhrases } from "../../services/warmVoiceService";
+import { listen } from "../../services/voiceService";
 import type { UserProfile } from "../../types";
 
 interface VoiceSetupScreenProps {
@@ -29,30 +30,31 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
     { id: "dog", name: "Perro" },
   ];
 
-  // Iniciar bienvenida
+  // Iniciar bienvenida con voz cálida
   useEffect(() => {
     const init = async () => {
       if (step === "welcome") {
-        await speak("¡Hola! Soy tu asistente. Vamos a crear tu perfil");
+        await speakWithQueue(assistantPhrases.welcome);
         await new Promise(r => setTimeout(r, 500));
-        await speak("Dime, ¿cómo te llamas?");
+        await speakWithQueue(assistantPhrases.askName);
         setStep("name");
       }
     };
     init();
+    return () => cancelSpeak();
   }, []);
 
   // Hablar según el paso
   useEffect(() => {
     const say = async () => {
       if (step === "confirmName" && name && !parentHelpActive) {
-        await speak(`${name}, ¿es correcto tu nombre?`);
+        await speakWithQueue(`${name}, ¿es correcto tu nombre?`);
       } else if (step === "confirmAge" && age && !parentHelpActive) {
-        await speak(`${age} años, ¿es correcta tu edad?`);
+        await speakWithQueue(`${age} años, ¿es correcta tu edad?`);
       } else if (step === "age" && !parentHelpActive) {
-        await speak("¿Cuántos años tienes? Dime un número, como cinco o seis");
+        await speakWithQueue("¿Cuántos años tienes? Dime un número, como cinco o seis");
       } else if (step === "avatar" && !parentHelpActive) {
-        await speak("Elige tu avatar favorito tocando la imagen");
+        await speakWithQueue("Elige tu avatar favorito tocando la imagen");
       }
     };
     const timer = setTimeout(say, 300);
@@ -86,18 +88,18 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
         setName(text);
         setStep("confirmName");
       } else {
-        await speak("No escuché bien tu nombre. Dímelo otra vez");
+        await speakWithQueue("No escuché bien tu nombre. Dímelo otra vez");
         startListening();
       }
     }
     // PASO 2: Confirmar nombre
     else if (step === "confirmName") {
       if (lowerText.includes("sí") || lowerText.includes("si")) {
-        await speak("¡Muy bien!");
+        await speakWithQueue(assistantPhrases.correct);
         setStep("age");
       } 
       else if (lowerText.includes("no")) {
-        await speak("Dime tu nombre otra vez");
+        await speakWithQueue("Dime tu nombre otra vez");
         setStep("name");
         startListening();
       }
@@ -105,7 +107,7 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
         activateParentHelp();
       }
       else {
-        await speak("No entendí. Di sí si está bien, o no si quieres cambiarlo");
+        await speakWithQueue("No entendí. Di sí si está bien, o no si quieres cambiarlo");
         startListening();
       }
     }
@@ -132,18 +134,18 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
         setAge(edad);
         setStep("confirmAge");
       } else {
-        await speak("No entendí tu edad. Dime un número del 3 al 12, como cinco o seis");
+        await speakWithQueue("No entendí tu edad. Dime un número del 3 al 12, como cinco o seis");
         startListening();
       }
     }
     // PASO 4: Confirmar edad
     else if (step === "confirmAge") {
       if (lowerText.includes("sí") || lowerText.includes("si")) {
-        await speak("¡Excelente!");
+        await speakWithQueue(assistantPhrases.excellent);
         setStep("avatar");
       }
       else if (lowerText.includes("no")) {
-        await speak("Dime tu edad otra vez");
+        await speakWithQueue("Dime tu edad otra vez");
         setStep("age");
         startListening();
       }
@@ -151,32 +153,30 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
         activateParentHelp();
       }
       else {
-        await speak("No entendí. Di sí si está bien, o no si quieres cambiarlo");
+        await speakWithQueue("No entendí. Di sí si está bien, o no si quieres cambiarlo");
         startListening();
       }
     }
   };
 
   const activateParentHelp = async () => {
-    // Detener cualquier escucha actual
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch(e) {}
     }
     setIsListening(false);
     setParentHelpActive(true);
     
-    await speak("Voy a leer la información para que mamá o papá me ayuden");
+    await speakWithQueue("Voy a leer la información para que mamá o papá me ayuden");
     await new Promise(r => setTimeout(r, 500));
     
     if (step === "confirmName") {
-      await speak(`El nombre es ${name}`);
+      await speakWithQueue(`El nombre es ${name}`);
     } else if (step === "confirmAge") {
-      await speak(`La edad es ${age} años`);
+      await speakWithQueue(`La edad es ${age} años`);
     }
     
-    await speak("¿Está todo correcto? Di sí o no");
+    await speakWithQueue("¿Está todo correcto? Di sí o no");
     
-    // Escuchar respuesta del adulto
     setIsListening(true);
     recognitionRef.current = listen(
       async (response) => {
@@ -184,7 +184,7 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
         const lowerResponse = response.toLowerCase();
         
         if (lowerResponse.includes("sí") || lowerResponse.includes("si")) {
-          await speak("¡Perfecto! Gracias por ayudar");
+          await speakWithQueue("¡Perfecto! Gracias por ayudar");
           setParentHelpActive(false);
           if (step === "confirmName") {
             setStep("age");
@@ -193,9 +193,8 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
           }
         } 
         else if (lowerResponse.includes("no")) {
-          await speak("¿Qué necesitamos corregir? ¿El nombre o la edad?");
+          await speakWithQueue("¿Qué necesitamos corregir? ¿El nombre o la edad?");
           
-          // Escuchar qué corregir
           setIsListening(true);
           recognitionRef.current = listen(
             async (correction) => {
@@ -203,13 +202,13 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
               const lowerCorrection = correction.toLowerCase();
               
               if (lowerCorrection.includes("nombre")) {
-                await speak("Dime el nombre correcto");
+                await speakWithQueue("Dime el nombre correcto");
                 setStep("name");
               } else if (lowerCorrection.includes("edad")) {
-                await speak("Dime la edad correcta");
+                await speakWithQueue("Dime la edad correcta");
                 setStep("age");
               } else {
-                await speak("No entendí. Puedes editar el perfil después desde el menú");
+                await speakWithQueue("No entendí. Puedes editar el perfil después desde el menú");
                 setStep("avatar");
               }
               setParentHelpActive(false);
@@ -221,7 +220,7 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
           );
         }
         else {
-          await speak("No entendí. Si está bien, di sí. Si no, di no");
+          await speakWithQueue("No entendí. Si está bien, di sí. Si no, di no");
           activateParentHelp();
         }
       },
@@ -238,12 +237,12 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
     }
     setIsListening(false);
     setParentHelpActive(false);
-    speak("Cancelando ayuda. Continuemos con el registro");
+    speakWithQueue("Cancelando ayuda. Continuemos con el registro");
   };
 
   const handleEditName = (newName: string) => {
     setName(newName);
-    speak(`Nombre cambiado a ${newName}`);
+    speakWithQueue(`Nombre cambiado a ${newName}`);
     setStep("age");
   };
 
@@ -255,13 +254,13 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
       stars: 0,
       avatar: selectedAvatar,
     };
-    await speak("¡Perfil guardado! Vamos a jugar");
+    await speakWithQueue("¡Perfil guardado! Vamos a jugar");
     onComplete(newProfile);
   };
 
   const repeatQuestion = () => {
     if (step === "name") {
-      speak("Dime tu nombre");
+      speak(assistantPhrases.askName);
       startListening();
     } else if (step === "age") {
       speak("Dime tu edad");
@@ -349,7 +348,7 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">"{name}"</h2>
               <p className="text-gray-600 mb-4">¿Es correcto tu nombre?</p>
               <div className="flex flex-wrap gap-3 justify-center">
-                <button onClick={() => { setStep("age"); speak("Muy bien"); }} className="bg-green-500 text-white rounded-full px-6 py-3 text-lg font-bold">
+                <button onClick={() => { setStep("age"); speak(assistantPhrases.correct); }} className="bg-green-500 text-white rounded-full px-6 py-3 text-lg font-bold">
                   Sí ✅
                 </button>
                 <button onClick={() => { setStep("name"); speak("Dime tu nombre otra vez"); }} className="bg-red-500 text-white rounded-full px-6 py-3 text-lg font-bold">

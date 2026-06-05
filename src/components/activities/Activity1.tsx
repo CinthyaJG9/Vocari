@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Home, Star, Volume2, Mic, RefreshCw, Loader2, Trophy } from "lucide-react";
 import { getWordByAge, getRelatedWords, getRealImage, evaluateSpeech, resetWordHistory, getWordDifficulty } from "../../services/dynamicWordService";
 import { PronunciationPractice } from "./PronuntiationPractice";
+import { speak, speakWithQueue } from "../../services/warmVoiceService";
 
 interface Activity1Props {
   age: number;
@@ -80,12 +81,9 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     loadNewWord();
   }, [loadNewWord]);
 
+  // ✅ VOZ UNIFICADA - usar speak del servicio cálido
   const speakWord = () => {
-    const utterance = new SpeechSynthesisUtterance(currentWord);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.7;
-    utterance.pitch = 1.1;
-    window.speechSynthesis.speak(utterance);
+    speak(currentWord, 0.7);
   };
 
   const advanceToNextWord = () => {
@@ -107,11 +105,9 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     setShowFeedback(true);
 
     if (isImgCorrect) {
-      // Verificar dificultad de la palabra
       const difficulty = getWordDifficulty(currentWord, age);
       
       if (difficulty === 'hard') {
-        // Palabra difícil: forzar práctica de pronunciación
         setFeedbackMessage("¡Correcto! Ahora vamos a practicar cómo se dice");
         onAwardStars(1); 
         
@@ -121,7 +117,6 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
           setShowPractice(true);
         }, 1500);
       } else {
-        // Palabra fácil o mediana: flujo normal
         setFeedbackMessage("¡Correcto! +1 estrella ⭐");
         onAwardStars(1);
         
@@ -174,7 +169,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     recognition.onresult = (event: any) => {
       const spoken = event.results[0][0].transcript;
       setIsRecording(false);
-      const result = evaluateSpeech(spoken, currentWord, age.toString());
+      const result = evaluateSpeech(spoken, currentWord, userName);
       
       if (result.correct) onAwardStars(result.stars);
       

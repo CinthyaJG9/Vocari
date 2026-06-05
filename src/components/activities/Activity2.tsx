@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { Home, Star, Mic, Loader2, ArrowRight, Volume2 } from "lucide-react";
+import { createPhrase } from "../../utils/wordVisuals";
+import { speak, speakWithQueue, cancelSpeak, assistantPhrases } from "../../services/warmVoiceService";
 
 interface Activity2Props {
   age: number;
@@ -43,178 +45,242 @@ const youngPhrases = [
   { text: "El mono salta de árbol en árbol", image: "🐒", hint: "🌳" },
   { text: "La flor huele bien", image: "🌸", hint: "🌺" },
   { text: "El pájaro canta en la mañana", image: "🐦", hint: "🎶" },
+  { text: "La nube llueve", image: "☁️", hint: "🌧️" },
+  { text: "El pez nada en el mar", image: "🐟", hint: "🌊" },
+  { text: "La estrella brilla en el cielo", image: "⭐", hint: "🌌" },
+  { text: "El oso hiberna en invierno", image: "🐻", hint: "❄️" },
+  { text: "La mariposa revolotea entre las flores", image: "🦋", hint: "🌸" },
+  { text: "El conejo come zanahorias", image: "🐇", hint: "🥕" },
+  { text: "La vaca da leche", image: "🐄", hint: "🥛" },
+  { text: "El perro ladra fuerte", image: "🐕", hint: "🔊" },
+  { text: "La abeja zumba alrededor de las flores", image: "🐝", hint: "🌼" },
+  { text: "El elefante tiene una trompa larga", image: "🐘", hint: "👃" },
+  { text: "La mariposa tiene alas coloridas", image: "🦋", hint: "🎨" },
+  { text: "El pez tiene aletas para nadar", image: "🐠", hint: "🏊" },
 ];
+
+// ============================================
+// FRASES PARA NIÑOS GRANDES (con visuales automáticos)
+// ============================================
 
 const oldPhrases = [
-  { 
-    text: "El astronauta viaja al espacio", 
-    image: "👨‍🚀", 
-    hint1: "Persona que viaja al espacio", 
-    hint2: "Lugar fuera de la Tierra",
-    answer1: "astronauta", 
-    answer2: "espacio",
-    visual1: "a_______a", 
-    visual2: "e_____o" 
-  },
-  { 
-    text: "La mariposa vuela entre las flores", 
-    image: "🦋", 
-    hint1: "Insecto con alas coloridas", 
-    hint2: "Plantas que dan color al jardín",
-    answer1: "mariposa", 
-    answer2: "flores",
-    visual1: "m______a", 
-    visual2: "f____s" 
-  },
-  { 
-    text: "El arquitecto diseña edificios", 
-    image: "🏗️", 
-    hint1: "Profesión que crea planos", 
-    hint2: "Construcciones grandes",
-    answer1: "arquitecto", 
-    answer2: "edificios",
-    visual1: "a_______o", 
-    visual2: "e______s" 
-  },
-  {
-    text: "La guitarra suena con melodía",
-    image: "🎸",
-    hint1: "Instrumento musical de cuerdas",
-    hint2: "Combinación de sonidos agradables",
-    answer1: "guitarra",
-    answer2: "melodía",
-    visual1: "g_____a",
-    visual2: "m_____a"
-  },
-  {
-    text: "El científico investiga nuevos descubrimientos",
-    image: "🔬",
-    hint1: "Persona que estudia la naturaleza",
-    hint2: "Hallazgos importantes",
-    answer1: "científico",
-    answer2: "descubrimientos",
-    visual1: "c______o",
-    visual2: "d___________s"
-  },
-  {
-    text: "La biblioteca tiene muchos libros interesantes",
-    image: "📚",
-    hint1: "Lugar donde se guardan libros",
-    hint2: "Objetos con páginas para leer",
-    answer1: "biblioteca",
-    answer2: "libros",
-    visual1: "b_______a",
-    visual2: "l___s"
-  },
-  {
-    text: "El pintor crea obras de arte con colores",
-    image: "🎨",
-    hint1: "Persona que pinta cuadros",
-    hint2: "Resultados visuales de la creatividad",
-    answer1: "pintor",
-    answer2: "arte",
-    visual1: "p___r",
-    visual2: "a__e"
-  },
-  {
-    text: "La computadora procesa información rápidamente",
-    image: "💻",
-    hint1: "Máquina electrónica para trabajar o jugar",
-    hint2: "Datos que se manejan en la tecnología",
-    answer1: "computadora",
-    answer2: "información",
-    visual1: "c________a",
-    visual2: "i_________n"
-  },
-  {
-    text: "El chef cocina platos deliciosos en el restaurante",
-    image: "👨‍🍳",
-    hint1: "Persona que prepara comida",
-    hint2: "Lugar donde se sirven comidas",
-    answer1: "chef",
-    answer2: "restaurante",
-    visual1: "c__f",
-    visual2: "r________e"
-  },
-  {
-    text: "La música clásica es apreciada por su belleza",
-    image: "🎵",
-    hint1: "Tipo de música considerada elegante",
-    hint2: "Calidad estética de la música",
-    answer1: "música",
-    answer2: "belleza",
-    visual1: "m____a",
-    visual2: "b_____a"
-  }, 
-  {
-    text: "El volcán erupciona con fuerza y lava",
-    image: "🌋",
-    hint1: "Estructura geológica que lanza material fundido",
-    hint2: "Líquido caliente que sale del interior de la Tierra",
-    answer1: "volcán",
-    answer2: "lava",
-    visual1: "v___n",
-    visual2: "l__a"
-  },
-  {
-    text: "La astronomía estudia los cuerpos celestes",
-    image: "🔭",
-    hint1: "Ciencia que estudia los objetos en el espacio",
-    hint2: "Entidades que existen fuera de la Tierra",
-    answer1: "astronomía",
-    answer2: "cuerpos",
-    visual1: "a______o",
-    visual2: "c___s"
-  },
-  {
-    text: "El reloj marca la hora con precisión",
-    image: "⏰",
-    hint1: "Objeto que muestra el tiempo",
-    hint2: "Instrumento para medir el tiempo",
-    answer1: "reloj",
-    answer2: "hora",
-    visual1: "r__j",
-    visual2: "h__a"
-   },
-   {
-    text: "La fotografía captura momentos especiales",
-    image: "📸",
-    hint1: "Imagen tomada con una cámara",
-    hint2: "Instante que se conserva en la memoria",
-    answer1: "fotografía",
-    answer2: "momentos",
-    visual1: "f______a",
-    visual2: "m____s"
-   },
-   {
-    text: "El deporte es importante para la salud física y mental",
-    image: "⚽",
-    hint1: "Actividad que mejora el estado de ánimo",
-    hint2: "Práctica que fortalece el cuerpo",
-    answer1: "deporte",
-    answer2: "salud",
-    visual1: "d____o",
-    visual2: "s___d"
-   }
+  createPhrase(
+    "El astronauta viaja al espacio",
+    "astronauta",
+    "espacio",
+    "👨‍🚀",
+    "Persona que viaja al espacio",
+    "Lugar fuera de la Tierra"
+  ),
+  createPhrase(
+    "La mariposa vuela entre las flores",
+    "mariposa",
+    "flores",
+    "🦋",
+    "Insecto con alas coloridas",
+    "Plantas que dan color al jardín"
+  ),
+  createPhrase(
+    "El arquitecto diseña edificios",
+    "arquitecto",
+    "edificios",
+    "🏗️",
+    "Profesión que crea planos",
+    "Construcciones grandes"
+  ),
+  createPhrase(
+    "La guitarra suena con melodía",
+    "guitarra",
+    "melodía",
+    "🎸",
+    "Instrumento musical de cuerdas",
+    "Combinación de sonidos agradables"
+  ),
+  createPhrase(
+    "El científico investiga nuevos descubrimientos",
+    "científico",
+    "descubrimientos",
+    "🔬",
+    "Persona que estudia la naturaleza",
+    "Hallazgos importantes"
+  ),
+  createPhrase(
+    "La biblioteca tiene muchos libros interesantes",
+    "biblioteca",
+    "libros",
+    "📚",
+    "Lugar donde se guardan libros",
+    "Objetos con páginas para leer"
+  ),
+  createPhrase(
+    "El pintor crea obras de arte con colores",
+    "pintor",
+    "arte",
+    "🎨",
+    "Persona que pinta cuadros",
+    "Resultados visuales de la creatividad"
+  ),
+  createPhrase(
+    "La computadora procesa información rápidamente",
+    "computadora",
+    "información",
+    "💻",
+    "Máquina electrónica para trabajar o jugar",
+    "Datos que se manejan en la tecnología"
+  ),
+  createPhrase(
+    "El chef cocina platos deliciosos en el restaurante",
+    "chef",
+    "restaurante",
+    "👨‍🍳",
+    "Persona que prepara comida",
+    "Lugar donde se sirven comidas"
+  ),
+  createPhrase(
+    "La música clásica es apreciada por su belleza",
+    "música",
+    "belleza",
+    "🎵",
+    "Tipo de música considerada elegante",
+    "Calidad estética de la música"
+  ),
+  createPhrase(
+    "El volcán erupciona con fuerza y lava",
+    "volcán",
+    "lava",
+    "🌋",
+    "Estructura geológica que lanza material fundido",
+    "Líquido caliente que sale del interior de la Tierra"
+  ),
+  createPhrase(
+    "La astronomía estudia los cuerpos celestes",
+    "astronomía",
+    "cuerpos",
+    "🔭",
+    "Ciencia que estudia los objetos en el espacio",
+    "Entidades que existen fuera de la Tierra"
+  ),
+  createPhrase(
+    "El reloj marca la hora con precisión",
+    "reloj",
+    "hora",
+    "⏰",
+    "Objeto que muestra el tiempo",
+    "Instrumento para medir el tiempo"
+  ),
+  createPhrase(
+    "La fotografía captura momentos especiales",
+    "fotografía",
+    "momentos",
+    "📸",
+    "Imagen tomada con una cámara",
+    "Instante que se conserva en la memoria"
+  ),
+  createPhrase(
+    "El deporte es importante para la salud física y mental",
+    "deporte",
+    "salud",
+    "⚽",
+    "Actividad que mejora el estado de ánimo",
+    "Práctica que fortalece el cuerpo"
+  ),
+  createPhrase(
+    "La poesía expresa emociones con palabras",
+    "poesía",
+    "emociones",
+    "📖",
+    "Forma de arte literaria que utiliza el lenguaje de manera creativa",
+    "Sentimientos que se transmiten a través de la poesía"
+  ),
+  createPhrase(
+    "El ingeniero construye puentes resistentes",
+    "ingeniero",
+    "puentes",
+    "🏗️",
+    "Profesión que diseña estructuras",
+    "Elementos que conectan dos puntos"
+  ),
+  createPhrase(
+    "La televisión muestra programas interesantes",
+    "televisión",
+    "programas",
+    "📺",
+    "Dispositivo que emite imágenes y sonido",
+    "Contenido que se presenta en la pantalla"
+  ),
+  createPhrase(
+    "El zoológico alberga animales de todo el mundo",
+    "zoológico",
+    "animales",
+    "🦁",
+    "Lugar donde se mantienen animales en cautiverio",
+    "Espacio dedicado a la conservación y exhibición de fauna"
+  ),
+  createPhrase(
+    "La filosofía reflexiona sobre la existencia y el conocimiento",
+    "filosofía",
+    "existencia",
+    "💭",
+    "Ciencia que estudia la naturaleza de la realidad y el conocimiento",
+    "Pensamiento profundo sobre el sentido de la vida"
+  ),
+  createPhrase(
+    "El teatro presenta obras dramáticas en el escenario",
+    "teatro",
+    "obras",
+    "🎭",
+    "Lugar donde se representan piezas teatrales",
+    "Espacio para la expresión artística"
+  ), 
+  createPhrase(
+    "La medicina ayuda a curar enfermedades y salvar vidas",
+    "medicina",
+    "enfermedades",
+    "💊",
+    "Ciencia que estudia el tratamiento de las enfermedades",
+    "Acción de ayudar a las personas a recuperarse de una enfermedad"
+  ), 
+  createPhrase(
+    "El medio ambiente es importante para la vida en la Tierra",
+    "medio ambiente",
+    "vida",
+    "🌍",
+    "El entorno natural que nos rodea",
+    "Condiciones necesarias para la supervivencia de los seres vivos"
+  ),
+  createPhrase(
+    "El reloj marca la hora con precisión",
+    "reloj",
+    "hora",
+    "⏰",
+    "Objeto que muestra el tiempo",
+    "Instrumento para medir el tiempo"
+  ),
+  createPhrase(
+    "La fotografía captura momentos especiales",
+    "fotografía",
+    "momentos",
+    "📸",
+    "Imagen tomada con una cámara",
+    "Instante que se conserva en la memoria"
+  ),
+  createPhrase(
+    "El deporte es importante para la salud física y mental",
+    "deporte",
+    "salud",
+    "⚽",
+    "Actividad que mejora el estado de ánimo",
+    "Práctica que fortalece el cuerpo"
+  ),
+  createPhrase(
+    "La poesía expresa emociones con palabras",
+    "poesía",
+    "emociones",
+    "📖",
+    "Forma de arte literaria que utiliza el lenguaje de manera creativa",
+    "Sentimientos que se transmiten a través de la poesía"
+  ),
 ];
-
-// ============================================
-// FUNCIONES DE VOZ
-// ============================================
-
-const speak = (text: string, rate: number = 0.75, onEnd?: () => void) => {
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'es-ES';
-  utterance.rate = rate;
-  utterance.pitch = 1.1;
-  if (onEnd) utterance.onend = onEnd;
-  window.speechSynthesis.speak(utterance);
-};
-
-const cancelSpeak = () => {
-  window.speechSynthesis.cancel();
-};
 
 // ============================================
 // DETECCIÓN DE PALABRAS CON R
@@ -246,7 +312,7 @@ const RPractice = ({ word, onComplete, userName }: {
 
   useEffect(() => {
     setFeedback(`🎤 ¡Vamos a practicar la palabra con R, ${userName || "amigo"}!`);
-    speak(`Escucha con atención: ${word}`, 0.7, () => {
+    speakWithQueue(`Escucha con atención: ${word}`, 0.7).then(() => {
       setTimeout(() => {
         setStep('speaking');
         setFeedback(`🎙️ ¡Ahora tú! Dime: "${word}"`);
@@ -275,18 +341,18 @@ const RPractice = ({ word, onComplete, userName }: {
 
       if (isCorrect) {
         setFeedback(`✅ ¡Excelente! Dijiste "${word}" correctamente. ¡La R suena perfecto!`);
-        speak(`¡Muy bien, ${userName || "amigo"}! La R te quedó genial.`, 0.8, () => {
+        speakWithQueue(`¡Muy bien, ${userName || "amigo"}! La R te quedó genial.`, 0.8).then(() => {
           setTimeout(() => onComplete(true), 1000);
         });
       } else if (attempts === 0) {
         setAttempts(1);
         setFeedback(`Dijiste "${spoken}". ¡Intenta de nuevo! La R se pronuncia fuerte`);
-        speak(`Escucha cómo se dice: ${word}. La R vibra en la lengua.`, 0.65, () => {
+        speakWithQueue(`Escucha cómo se dice: ${word}. La R vibra en la lengua.`, 0.65).then(() => {
           setStep('speaking');
         });
       } else {
         setFeedback(`Dijiste "${spoken}". La palabra correcta es "${word}". ¡Sigue practicando!`);
-        speak(`La palabra correcta es "${word}". ¡Sigue practicando la R!`, 0.8, () => {
+        speakWithQueue(`La palabra correcta es "${word}". ¡Sigue practicando la R!`, 0.8).then(() => {
           setTimeout(() => onComplete(false), 1000);
         });
       }
@@ -340,7 +406,7 @@ const YoungActivity = ({ phrase, image, hint, onComplete, userName }: {
 
   useEffect(() => {
     setFeedback("🎧 Escucha la frase...");
-    speak(`Mira la imagen. Escucha con atención: ${phrase}`, 0.75, () => {
+    speakWithQueue(`Mira la imagen. Escucha con atención: ${phrase}`, 0.75).then(() => {
       setFeedback("🎤 ¡Ahora es tu turno! Repite la frase");
       setStep('speaking');
     });
@@ -363,17 +429,17 @@ const YoungActivity = ({ phrase, image, hint, onComplete, userName }: {
         stars = 3;
         setFeedback("🎉 ¡Excelente!");
         setStep('feedback');
-        speak(`¡Muy bien, ${userName || "amigo"}!`, 0.8, () => onComplete(stars, rWords));
+        speakWithQueue(`¡Muy bien, ${userName || "amigo"}!`, 0.8).then(() => onComplete(stars, rWords));
       } else if (attempts === 0) {
         setAttempts(1);
         setFeedback(`Escuché "${spoken}". ¡Intentémoslo una vez más!`);
         setStep('listening');
-        speak(`Escucha de nuevo: ${phrase}`, 0.75, () => { setStep('speaking'); setFeedback("🎤 Repite la frase"); });
+        speakWithQueue(`Escucha de nuevo: ${phrase}`, 0.75).then(() => { setStep('speaking'); setFeedback("🎤 Repite la frase"); });
       } else {
         stars = 1;
         setFeedback("¡Bien intentado! ✨");
         setStep('feedback');
-        speak(`Buen intento. La frase era "${phrase}"`, 0.8, () => onComplete(stars, rWords));
+        speakWithQueue(`Buen intento. La frase era "${phrase}"`, 0.8).then(() => onComplete(stars, rWords));
       }
     };
     recognition.onerror = () => { setIsRecording(false); setFeedback("No te escuché. ¡Inténtalo de nuevo!"); setStep('speaking'); };
@@ -406,7 +472,7 @@ const YoungActivity = ({ phrase, image, hint, onComplete, userName }: {
 };
 
 // ============================================
-// COMPONENTE PARA NIÑOS GRANDES (≥8 años) - CON PAUSAS
+// COMPONENTE PARA NIÑOS GRANDES (≥8 años) - CON PAUSAS Y VISUALES AUTOMÁTICOS
 // ============================================
 
 const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, visual2, onComplete, userName }: { 
@@ -462,10 +528,8 @@ const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, v
 
   useEffect(() => {
     setFeedback("🔊 Escucha la frase...");
-    // Decir la introducción
     speak("Observa la imagen.", 0.8, () => {
       setTimeout(() => {
-        // Decir la frase con pausas
         speakWithPauses(() => {
           setFeedback("🎤 Di la frase completa con las palabras que faltan");
           setStep('speaking');
@@ -493,18 +557,18 @@ const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, v
       if (found1 && found2) {
         stars = 3;
         setFeedback(`🎉 ¡Excelente! Las palabras son correctas`);
-        speak(`¡Increíble, ${userName || "amigo"}! Las palabras son "${answer1}" y "${answer2}".`, 0.8, () => onComplete(stars));
+        speakWithQueue(`¡Increíble, ${userName || "amigo"}! Las palabras son "${answer1}" y "${answer2}".`, 0.8).then(() => onComplete(stars));
       } else if (attempts === 0) {
         setAttempts(1);
         let missing = []; if (!found1) missing.push(answer1); if (!found2) missing.push(answer2);
         setFeedback(`Te falta${missing.length > 1 ? 'n' : ''} ${missing.join(' y ')}. ¡Intenta de nuevo!`);
         setStep('listening');
-        speak(`Pista: ${!found1 ? hint1 : ''} ${!found2 ? hint2 : ''}`, 0.75, () => { setStep('speaking'); setFeedback("🎤 Di la frase completa"); });
+        speakWithQueue(`Pista: ${!found1 ? hint1 : ''} ${!found2 ? hint2 : ''}`, 0.75).then(() => { setStep('speaking'); setFeedback("🎤 Di la frase completa"); });
       } else {
         stars = 1;
         setFeedback("¡Buen intento! 💡");
         setStep('feedback');
-        speak(`Buen esfuerzo. Las palabras eran "${answer1}" y "${answer2}"`, 0.8, () => onComplete(stars));
+        speakWithQueue(`Buen esfuerzo. Las palabras eran "${answer1}" y "${answer2}"`, 0.8).then(() => onComplete(stars));
       }
     };
     recognition.onerror = () => { setIsRecording(false); setFeedback("No capturé el audio. Intenta hablar claro 🎤"); setStep('speaking'); };
@@ -606,7 +670,7 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
 
   const startSession = () => {
     setShowActivity(true);
-    speak(`¡Hola ${userName || "amigo"}! Vamos a practicar ${shuffledPhrases.length} frases.`, 0.8);
+    speakWithQueue(`¡Hola ${userName || "amigo"}! Vamos a practicar ${shuffledPhrases.length} frases.`, 0.8);
   };
 
   // Pantalla Inicial
@@ -629,49 +693,33 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
       </div>
     );
   }
-// Pantalla de finalización
-if (sessionCompleted) {
-  return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full mx-auto">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            className="mb-4"
-          >
-            <span className="text-7xl md:text-8xl">🏆</span>
-          </motion.div>
-          
-          <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-2">
-            ¡Felicidades!
-          </h2>
-          
-          <p className="text-gray-500 text-sm md:text-base mb-6">
-            Completaste todas las frases
-          </p>
-          
-          <div className="flex justify-center items-center gap-2 bg-purple-50 rounded-2xl py-3 mb-6">
-            <Star className="text-yellow-500 fill-yellow-500" size={28} />
-            <span className="text-2xl md:text-3xl font-bold text-purple-700">
-              {stars} estrellas
-            </span>
-          </div>
-          
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={onFinish}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all text-base md:text-lg shadow-md"
+
+  // Pantalla de finalización
+  if (sessionCompleted) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full mx-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="mb-4"
             >
-              Volver al menú
-            </button>
+              <span className="text-7xl md:text-8xl">🏆</span>
+            </motion.div>
+            <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-2">¡Felicidades!</h2>
+            <p className="text-gray-500 text-sm md:text-base mb-6">Completaste todas las frases</p>
+            <div className="flex justify-center items-center gap-2 bg-purple-50 rounded-2xl py-3 mb-6">
+              <Star className="text-yellow-500 fill-yellow-500" size={28} />
+              <span className="text-2xl md:text-3xl font-bold text-purple-700">{stars} estrellas</span>
+            </div>
+            <button onClick={onFinish} className="bg-gradient-to-r from-purple-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all w-full">Volver al menú</button>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // Renderizar actividad
   if (!currentPhrase) return null;
@@ -691,7 +739,19 @@ if (sessionCompleted) {
           <YoungActivity key={currentIndex} phrase={currentPhrase.text} image={currentPhrase.image} hint={currentPhrase.hint} userName={userName} onComplete={handleYoungComplete} />
         )}
         {showActivity && !isYoung && (
-          <OldActivity key={currentIndex} phrase={currentPhrase.text} image={currentPhrase.image} hint1={currentPhrase.hint1} hint2={currentPhrase.hint2} answer1={currentPhrase.answer1} answer2={currentPhrase.answer2} visual1={currentPhrase.visual1} visual2={currentPhrase.visual2} userName={userName} onComplete={handleOldComplete} />
+          <OldActivity 
+            key={currentIndex} 
+            phrase={currentPhrase.text} 
+            image={currentPhrase.image} 
+            hint1={currentPhrase.hint1} 
+            hint2={currentPhrase.hint2} 
+            answer1={currentPhrase.answer1} 
+            answer2={currentPhrase.answer2} 
+            visual1={currentPhrase.visual1} 
+            visual2={currentPhrase.visual2} 
+            userName={userName} 
+            onComplete={handleOldComplete} 
+          />
         )}
 
         {showRPractice && pendingRPracticeWords.length > 0 && (

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { Home, Star, Volume2, RefreshCw, ArrowRight, Shuffle, Loader2 } from "lucide-react";
-import { getImage, getRandomContextImage } from "../../services/imageService";
-import { speak } from "../../services/dynamicWordService";
-import { playSoundByQuery, soundActivities } from "../../services/freeSoundService";
+import { getImage } from "../../services/imageService";
+import { speak, speakWithQueue, cancelSpeak } from "../../services/warmVoiceService";
+import { playSoundByQuery, soundActivities } from "../../services/freesoundService";
 
 interface Activity3Props {
   age: number;
@@ -15,34 +15,48 @@ interface Activity3Props {
 }
 
 // ============================================
+// FUNCIÓN PARA GENERAR GUIONES EXACTOS
+// ============================================
+
+const generateUnderscores = (word: string): string => {
+  return "_".repeat(word.length);
+};
+
+// ============================================
 // PALABRAS PARA NIÑOS GRANDES
 // ============================================
 
 const oldActivities = [
-  { word: "astronauta", image: "astronaut", hint: "Persona que viaja al espacio" },
-  { word: "mariposa", image: "butterfly", hint: "Insecto con alas coloridas" },
-  { word: "telescopio", image: "telescope", hint: "Instrumento para ver estrellas" },
-  { word: "violinista", image: "violin", hint: "Persona que toca el violín" },
-  { word: "arquitecto", image: "architect", hint: "Profesión que diseña edificios" },
-  { word: "biblioteca", image: "library", hint: "Lugar lleno de libros" },
-  { word: "chocolate", image: "chocolate", hint: "Dulce que comen muchos niños" },
-  { word: "computadora", image: "computer", hint: "Máquina para trabajar y jugar" },
-  { word: "elefante", image: "elephant", hint: "El animal terrestre más grande" },
-  { word: "guitarrista", image: "guitar", hint: "Persona que toca la guitarra" },
-  { word: "pirámide", image: "pyramid", hint: "Construcción antigua en Egipto" },
-  { word: "tigre", image: "tiger", hint: "Animal salvaje con rayas" },
-  { word: "caballo", image: "horse", hint: "Animal que se monta y corre rápido" },
-  { word: "bibliotecario", image: "librarian", hint: "Persona que trabaja en la biblioteca" },
-  { word: "científico", image: "scientist", hint: "Persona que hace experimentos y descubre cosas nuevas" },
-  { word: "dentista", image: "dentist", hint: "Persona que cuida los dientes" },
-  { word: "fotógrafo", image: "camera", hint: "Persona que toma fotos" },
-  { word: "jardinero", image: "gardener", hint: "Persona que cuida las plantas y flores" },
-  { word: "mago", image: "wizard", hint: "Persona que hace trucos y magia" },
-  { word: "payaso", image: "clown", hint: "Persona que hace reír en fiestas y circos" },
+  { word: "astronauta", image: "astronaut", hint: "Persona que viaja al espacio", underscores: "__________" },
+  { word: "mariposa", image: "butterfly", hint: "Insecto con alas coloridas", underscores: "________" },
+  { word: "telescopio", image: "telescope", hint: "Instrumento para ver estrellas", underscores: "__________" },
+  { word: "violinista", image: "violin", hint: "Persona que toca el violín", underscores: "__________" },
+  { word: "arquitecto", image: "architect", hint: "Profesión que diseña edificios", underscores: "__________" },
+  { word: "biblioteca", image: "library", hint: "Lugar lleno de libros", underscores: "__________" },
+  { word: "chocolate", image: "chocolate", hint: "Dulce que comen muchos niños", underscores: "_________" },
+  { word: "computadora", image: "computer", hint: "Máquina para trabajar y jugar", underscores: "___________" },
+  { word: "elefante", image: "elephant", hint: "El animal terrestre más grande", underscores: "________" },
+  { word: "guitarrista", image: "guitar", hint: "Persona que toca la guitarra", underscores: "___________" },
+  { word: "pirámide", image: "pyramid", hint: "Construcción antigua en Egipto", underscores: "________" },
+  { word: "tigre", image: "tiger", hint: "Animal salvaje con rayas", underscores: "_____" },
+  { word: "caballo", image: "horse", hint: "Animal que se monta y corre rápido", underscores: "_______" },
+  { word: "bibliotecario", image: "librarian", hint: "Persona que trabaja en la biblioteca", underscores: "____________" },
+  { word: "científico", image: "scientist", hint: "Persona que hace experimentos", underscores: "__________" },
+  { word: "dentista", image: "dentist", hint: "Persona que cuida los dientes", underscores: "________" },
+  { word: "fotógrafo", image: "camera", hint: "Persona que toma fotos", underscores: "_________" },
+  { word: "jardinero", image: "gardener", hint: "Persona que cuida las plantas", underscores: "_________" },
+  { word: "mago", image: "wizard", hint: "Persona que hace trucos y magia", underscores: "____" },
+  { word: "payaso", image: "clown", hint: "Persona que hace reír en fiestas", underscores: "______" },
+  { word: "pirata", image: "pirate", hint: "Persona que navega y busca tesoros", underscores: "______" },
+  { word: "robot", image: "robot", hint: "Máquina que puede hacer tareas", underscores: "_____" },
+  { word: "vampiro", image: "vampire", hint: "Ser que se alimenta de sangre", underscores: "_______" },
+  { word: "zombi", image: "zombie", hint: "Ser que vuelve a la vida después de muerto", underscores: "_____" },
+  { word: "dragón", image: "dragon", hint: "Criatura mítica que escupe fuego", underscores: "______" },
+  { word: "héroe", image: "hero", hint: "Persona valiente que ayuda a otros", underscores: "_____" },
 ];
 
 // ============================================
-// COMPONENTE PARA NIÑOS PEQUEÑOS (SOLO API)
+// COMPONENTE PARA NIÑOS PEQUEÑOS (SONIDOS)
 // ============================================
 
 const YoungActivity = ({ activity, onComplete, userName }: { 
@@ -59,27 +73,30 @@ const YoungActivity = ({ activity, onComplete, userName }: {
   const [loadingImages, setLoadingImages] = useState(true);
   const [options, setOptions] = useState<Array<{ image: string; text: string; isCorrect: boolean; id: string }>>([]);
   
-  // Generar opciones con imágenes variadas
+  const getAnimalName = (imageKey: string): string => {
+    const names: Record<string, string> = {
+      cat: "Gato", dog: "Perro", bird: "Pájaro", frog: "Rana",
+      cow: "Vaca", sheep: "Oveja", monkey: "Mono", lion: "León",
+      horse: "Caballo", duck: "Pato", bee: "Abeja", elephant: "Elefante",
+      zebra: "Cebra", tiger: "Tigre", bear: "Oso", snake: "Serpiente",
+      pirate: "Pirata", robot: "Robot", vampire: "Vampiro", zombie: "Zombi",
+      dragon: "Dragón", hero: "Héroe"
+    };
+    return names[imageKey] || imageKey;
+  };
+  
   useEffect(() => {
     const generateOptions = async () => {
       setLoadingImages(true);
-      
-      // Opción correcta
       const correctOption = { image: activity.image, text: activity.text, isCorrect: true, id: 'correct' };
-      
-      // Generar opciones incorrectas diferentes según el contexto
       const incorrectImages = ["cat", "dog", "bird", "frog", "cow", "sheep", "monkey", "lion"];
-      // Filtrar para no repetir la correcta
       const available = incorrectImages.filter(img => img !== activity.image);
-      // Tomar 2 aleatorias
       const shuffled = [...available].sort(() => Math.random() - 0.5);
       const incorrect1 = { image: shuffled[0], text: getAnimalName(shuffled[0]), isCorrect: false, id: 'inc1' };
       const incorrect2 = { image: shuffled[1], text: getAnimalName(shuffled[1]), isCorrect: false, id: 'inc2' };
-      
       const opts = [correctOption, incorrect1, incorrect2].sort(() => Math.random() - 0.5);
       setOptions(opts);
       
-      // Cargar imágenes
       const urls: Record<string, string> = {};
       for (const opt of opts) {
         const url = await getImage(opt.image);
@@ -88,61 +105,20 @@ const YoungActivity = ({ activity, onComplete, userName }: {
       setImageUrls(urls);
       setLoadingImages(false);
     };
-    
     generateOptions();
   }, [activity]);
   
-  const getAnimalName = (imageKey: string): string => {
-    const names: Record<string, string> = {
-      cat: "Gato",
-      dog: "Perro",
-      bird: "Pájaro",
-      frog: "Rana",
-      cow: "Vaca",
-      sheep: "Oveja",
-      monkey: "Mono",
-      lion: "León",
-      icecream: "Helado",
-      pizza: "Pizza",
-      balloon: "Globo",
-      rainbow: "Arcoíris",
-      library: "Biblioteca",
-      computer: "Computadora",
-      astronaut: "Astronauta",
-      violin: "Violín",
-      chocolate: "Chocolate",
-      horse: "Caballo",
-      duck: "Pato",
-      bee: "Abeja",
-      elephant: "Elefante",
-      giraffe: "Jirafa",
-      zebra: "Cebra",
-      tiger: "Tigre",
-      bear: "Oso",
-      snake: "Serpiente",
-      whale: "Ballena",
-      dolphin: "Delfín",
-      shark: "Tiburón",
-      octopus: "Pulpo",      
-    };
-    return names[imageKey] || imageKey;
-  };
-  
   const playSoundEffect = async () => {
     if (isPlaying || isLoading) return;
-    
     setIsLoading(true);
     setIsPlaying(true);
-    
     const success = await playSoundByQuery(activity.soundQuery);
-    
     if (!success) {
       const utterance = new SpeechSynthesisUtterance(activity.text);
       utterance.lang = 'es-ES';
       utterance.rate = 0.7;
       window.speechSynthesis.speak(utterance);
     }
-    
     setIsLoading(false);
     setTimeout(() => setIsPlaying(false), 100);
   };
@@ -150,18 +126,18 @@ const YoungActivity = ({ activity, onComplete, userName }: {
   const handleSelect = async (selected: typeof options[0]) => {
     if (selected.isCorrect) {
       setFeedback("🎉 ¡Excelente! +3 estrellas");
-      await speak(`¡Muy bien, ${userName || "amigo"}! El sonido es de ${activity.text}`, 0.8);
+      await speakWithQueue(`¡Muy bien, ${userName || "amigo"}! El sonido es de ${activity.text}`, 0.8);
       setTimeout(() => onComplete(3), 2000);
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
       if (newAttempts >= 2) {
         setFeedback(`El sonido es de ${activity.text}. ¡Sigue practicando! +1 estrella`);
-        await speak(`El sonido es de ${activity.text}.`, 0.7);
+        await speakWithQueue(`El sonido es de ${activity.text}.`, 0.7);
         setTimeout(() => onComplete(1), 2000);
       } else {
         setFeedback(`No es ${selected.text}. ¡Intenta de nuevo!`);
-        await speak(`No es ${selected.text}. Escucha de nuevo:`, 0.7);
+        await speakWithQueue(`No es ${selected.text}. Escucha de nuevo:`, 0.7);
         playSoundEffect();
       }
     }
@@ -208,11 +184,7 @@ const YoungActivity = ({ activity, onComplete, userName }: {
             `}
           >
             {imageUrls[opt.image] ? (
-              <img 
-                src={imageUrls[opt.image]} 
-                alt={opt.text}
-                className="w-full h-full object-cover"
-              />
+              <img src={imageUrls[opt.image]} alt={opt.text} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                 <Loader2 className="animate-spin text-gray-400" size={32} />
@@ -231,11 +203,11 @@ const YoungActivity = ({ activity, onComplete, userName }: {
 };
 
 // ============================================
-// COMPONENTE PARA NIÑOS GRANDES (SOLO API)
+// COMPONENTE PARA NIÑOS GRANDES (SOLO GUIONES)
 // ============================================
 
 const OldActivity = ({ activity, onComplete, userName }: { 
-  activity: { word: string; image: string; hint: string };
+  activity: { word: string; image: string; hint: string; underscores: string };
   userName?: string;
   onComplete: (stars: number) => void;
 }) => {
@@ -261,6 +233,18 @@ const OldActivity = ({ activity, onComplete, userName }: {
     loadImage();
   }, [activity]);
   
+  // Mostrar SOLO guiones (como en Actividad 2)
+  const displayUnderscores = () => {
+    if (selectedLetters.length === 0) {
+      return activity.underscores;
+    }
+    // Mostrar letras seleccionadas + guiones restantes
+    const progress = selectedLetters.join('').toUpperCase();
+    const remaining = activity.word.length - selectedLetters.length;
+    const underscores = "_".repeat(remaining);
+    return `${progress}${underscores}`;
+  };
+  
   const handleLetterClick = (letter: string, index: number) => {
     const newLetters = [...letters];
     newLetters.splice(index, 1);
@@ -279,18 +263,18 @@ const OldActivity = ({ activity, onComplete, userName }: {
     const formedWord = selectedLetters.join('');
     if (formedWord === activity.word) {
       setMessage("🎉 ¡Excelente! +3 estrellas");
-      await speak(`¡Muy bien, ${userName || "amigo"}! Formaste la palabra ${activity.word}`, 0.8);
+      await speakWithQueue(`¡Muy bien, ${userName || "amigo"}! Formaste la palabra ${activity.word}`, 0.8);
       setTimeout(() => onComplete(3), 2000);
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
       if (newAttempts >= 2) {
         setMessage(`La palabra era "${activity.word}". ¡Sigue practicando! +1 estrella`);
-        await speak(`La palabra correcta era ${activity.word}.`, 0.7);
+        await speakWithQueue(`La palabra correcta era ${activity.word}.`, 0.7);
         setTimeout(() => onComplete(1), 2000);
       } else {
         setMessage(`"${formedWord}" no es correcta. ¡Intenta de nuevo!`);
-        await speak(`"${formedWord}" no es correcta. Sigue intentando`, 0.7);
+        await speakWithQueue(`"${formedWord}" no es correcta. Sigue intentando`, 0.7);
       }
     }
   };
@@ -309,11 +293,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
           {loadingImage ? (
             <Loader2 size={40} className="animate-spin text-purple-500" />
           ) : (
-            <img 
-              src={imageUrl} 
-              alt={activity.word}
-              className="w-40 h-40 object-cover rounded-xl"
-            />
+            <img src={imageUrl} alt={activity.word} className="w-40 h-40 object-cover rounded-xl" />
           )}
         </div>
         <div className="flex-1 text-left">
@@ -322,10 +302,12 @@ const OldActivity = ({ activity, onComplete, userName }: {
         </div>
       </div>
       
+      {/* SOLO GUIONES (como en Actividad 2) */}
       <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl p-4 mb-6">
-        <p className="text-3xl md:text-4xl font-bold text-purple-700 tracking-wider">
-          {selectedLetters.length > 0 ? selectedLetters.join(' ').toUpperCase() : '_____'}
+        <p className="text-3xl md:text-4xl font-bold text-purple-700 tracking-wider font-mono">
+          {displayUnderscores()}
         </p>
+        <p className="text-sm text-purple-500 mt-2">{activity.word.length} letras</p>
       </div>
       
       <div className="flex flex-wrap justify-center gap-3 mb-6">
@@ -381,7 +363,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
 };
 
 // ============================================
-// COMPONENTE PRINCIPAL 
+// COMPONENTE PRINCIPAL
 // ============================================
 
 export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity3Props) => {
@@ -405,10 +387,8 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
       setCurrentIndex(prev => prev + 1);
       setShowActivity(true);
     } else {
-      // Cuando termina todos los ejercicios, mostrar pantalla final y volver al menú
       setSessionCompleted(true);
-      // Mostrar mensaje de felicitación
-      speak(`¡Felicidades ${userName || "amigo"}! Completaste todos los ejercicios`, 0.8);
+      speakWithQueue(`¡Felicidades ${userName || "amigo"}! Completaste todos los ejercicios`, 0.8);
     }
   };
   
@@ -420,13 +400,10 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   
   const startSession = () => {
     setShowActivity(true);
-    speak(`¡Hola ${userName || "amigo"}! Vamos a practicar ${shuffledActivities.length} ejercicios.`, 0.8);
+    speakWithQueue(`¡Hola ${userName || "amigo"}! Vamos a practicar ${shuffledActivities.length} ejercicios.`, 0.8);
   };
   
-  const handleFinish = () => {
-    // Llamar a onFinish para volver al menú
-    onFinish();
-  };
+  const handleFinish = () => onFinish();
   
   // Pantalla Inicial
   if (!showActivity && !sessionCompleted && shuffledActivities.length > 0 && currentIndex === 0) {
@@ -449,18 +426,13 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     );
   }
   
-  // Pantalla final (UNA SOLA, responsiva y bonita)
+  // Pantalla final
   if (sessionCompleted) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full mx-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="mb-4"
-            >
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-4">
               <span className="text-7xl md:text-8xl">🏆</span>
             </motion.div>
             <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-2">¡Felicidades!</h2>
@@ -469,12 +441,7 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
               <Star className="text-yellow-500 fill-yellow-500" size={28} />
               <span className="text-2xl md:text-3xl font-bold text-purple-700">{stars} estrellas</span>
             </div>
-            <button 
-              onClick={handleFinish} 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all w-full"
-            >
-              Volver al menú
-            </button>
+            <button onClick={handleFinish} className="bg-gradient-to-r from-purple-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all w-full">Volver al menú</button>
           </div>
         </div>
       </div>

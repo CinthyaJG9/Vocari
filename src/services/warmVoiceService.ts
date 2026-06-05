@@ -1,146 +1,101 @@
-// Servicio de voz con voz femenina cálida para niños
-let speechQueue: string[] = [];
+// Servicio de voz unificado para toda la app - VOZ CÁLIDA Y CONSISTENTE
 let isSpeaking = false;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
-let voicesLoaded = false;
+let voiceQueue: string[] = [];
 
-// Configuración de voz cálida
+// Configuración de voz cálida y lenta (perfecta para niños)
 const voiceConfig = {
-  rate: 0.88,      
-  pitch: 1.3,      
+  rate: 0.85,      // Más lento para que entiendan bien
+  pitch: 1.2,      // Más agudo, cálido y amigable
   volume: 1,
 };
 
-export const assistantPhrases = {
-  welcome: "¡Hola! Soy tu asistente. Si no sabes leer, no te preocupes, yo te guiaré con mi voz",
-  askName: "Dime tu nombre. Puedes hablarle al micrófono",
-  needHelp: "¿Necesitas ayuda? Pídele a mamá o papá que te ayuden",
-  practiceGuide: "Vamos a practicar una palabra difícil. Escucha con atención",
-  syllableGuide: (syllable: string) => `Dilo por partes: ${syllable}`,
-  repeatAfterMe: "Repite después de mí",
-  excellent: "¡Excelente! Lo hiciste muy bien",
-  tryAgain: "Casi lo logras. Escucha de nuevo",
-  finalGuide: "Si en algún momento te pierdes, solo presiona el botón de ayuda",
-};
-
-// Lista de voces femeninas en español
+// Cargar voz femenina en español
 const getWarmVoice = (): SpeechSynthesisVoice | null => {
   const voices = window.speechSynthesis.getVoices();
   
-  // Priorizar voces femeninas específicas (orden de preferencia)
-  const femaleVoices = [
-    // Google voces (mejores)
+  const preferredVoices = [
     'Google español femenino',
     'Google español',
-    // macOS voces
+    'es-ES',
+    'es-MX',
     'Mónica',
     'Paulina',
-    'Martha',
-    'Sofia',
-    // Windows voces
-    'Microsoft Sabina',
-    'Microsoft Elena',
-    'Microsoft Zira',
+    'Sabina',
+    'Elena'
   ];
   
-  // Buscar por nombre específico
-  for (const voiceName of femaleVoices) {
+  for (const preferred of preferredVoices) {
     const found = voices.find(v => 
       (v.lang === 'es-ES' || v.lang === 'es-MX') && 
-      v.name.includes(voiceName)
+      (v.name.includes(preferred) || v.name.includes('es-ES'))
     );
     if (found) return found;
   }
   
-  // Buscar cualquier voz femenina en español
-  const spanishFemale = voices.find(v => 
-    (v.lang === 'es-ES' || v.lang === 'es-MX') && 
-    (v.name.toLowerCase().includes('female') || 
-     v.name.toLowerCase().includes('mujer') ||
-     v.name.toLowerCase().includes('google'))
-  );
-  
-  if (spanishFemale) return spanishFemale;
-  
-  // Fallback: cualquier voz en español
-  return voices.find(v => v.lang === 'es-ES') || null;
+  return voices.find(v => v.lang === 'es-ES' || v.lang === 'es-MX') || null;
 };
 
-// Cargar voces y seleccionar la mejor
-export const initWarmVoice = async (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0 && !voicesLoaded) {
-        voicesLoaded = true;
-        const warmVoice = getWarmVoice();
-        console.log('Voz seleccionada:', warmVoice?.name || 'Voz por defecto');
-        resolve(true);
-      }
-    };
-    
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    
-    // Timeout por si nunca cargan
-    setTimeout(() => {
-      if (!voicesLoaded) {
-        console.log('Usando voz por defecto');
-        voicesLoaded = true;
-        resolve(true);
-      }
-    }, 2000);
-  });
-};
-
-// Hablar con voz cálida
-export const speakWarm = async (text: string): Promise<void> => {
+// Función principal para hablar (SIN cola para respuestas rápidas)
+export const speak = (text: string, rate?: number, onEnd?: () => void): void => {
   if (!text || text.length === 0) return;
   
-  // Asegurar que las voces están cargadas
-  if (!voicesLoaded) {
-    await initWarmVoice();
+  if (currentUtterance) {
+    window.speechSynthesis.cancel();
   }
   
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-ES';
+  utterance.rate = rate || voiceConfig.rate;
+  utterance.pitch = voiceConfig.pitch;
+  utterance.volume = voiceConfig.volume;
+  
+  const warmVoice = getWarmVoice();
+  if (warmVoice) utterance.voice = warmVoice;
+  
+  if (onEnd) utterance.onend = onEnd;
+  
+  utterance.onerror = () => {
+    currentUtterance = null;
+  };
+  
+  currentUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+};
+
+// Hablar con cola (para no interrumpir mensajes importantes)
+export const speakWithQueue = (text: string, rate?: number): Promise<void> => {
   return new Promise((resolve) => {
-    speechQueue.push(text);
+    voiceQueue.push(text);
     
     const processQueue = () => {
-      if (isSpeaking || speechQueue.length === 0) return;
+      if (isSpeaking || voiceQueue.length === 0) {
+        if (voiceQueue.length === 0) resolve();
+        return;
+      }
       
       isSpeaking = true;
-      const nextText = speechQueue.shift()!;
-      
-      window.speechSynthesis.cancel();
+      const nextText = voiceQueue.shift()!;
       
       const utterance = new SpeechSynthesisUtterance(nextText);
       utterance.lang = 'es-ES';
-      utterance.rate = voiceConfig.rate;
+      utterance.rate = rate || voiceConfig.rate;
       utterance.pitch = voiceConfig.pitch;
       utterance.volume = voiceConfig.volume;
       
       const warmVoice = getWarmVoice();
-      if (warmVoice) {
-        utterance.voice = warmVoice;
-        console.log('Usando voz:', warmVoice.name);
-      }
+      if (warmVoice) utterance.voice = warmVoice;
       
       utterance.onend = () => {
         isSpeaking = false;
-        currentUtterance = null;
-        resolve();
-        setTimeout(processQueue, 150);
+        processQueue();
       };
       
-      utterance.onerror = (e) => {
-        console.error('Error en voz:', e);
+      utterance.onerror = () => {
         isSpeaking = false;
-        currentUtterance = null;
-        resolve();
-        setTimeout(processQueue, 150);
+        processQueue();
       };
       
-      currentUtterance = utterance;
       window.speechSynthesis.speak(utterance);
     };
     
@@ -148,13 +103,35 @@ export const speakWarm = async (text: string): Promise<void> => {
   });
 };
 
-export const cancelVoice = () => {
+// Cancelar toda la voz
+export const cancelSpeak = () => {
   window.speechSynthesis.cancel();
-  speechQueue = [];
+  voiceQueue = [];
   isSpeaking = false;
   currentUtterance = null;
 };
 
-export const isVoiceSupported = (): boolean => {
-  return 'speechSynthesis' in window;
+// Alias para compatibilidad
+export const cancelVoice = cancelSpeak;
+
+// Frases del asistente (completas para el hook)
+export const assistantPhrases = {
+  welcome: "¡Hola! Soy tu asistente, vamos a aprender jugando",
+  askName: "Dime tu nombre por favor",
+  askAge: "¿Cuántos años tienes?",
+  confirmName: (name: string) => `${name}, ¿es correcto tu nombre?`,
+  confirmAge: (age: number) => `${age} años, ¿es correcta tu edad?`,
+  nameCorrect: "¡Qué bonito nombre!",
+  ageCorrect: "Excelente edad para aprender",
+  nameAgain: "Dime tu nombre otra vez, por favor",
+  ageAgain: "Dime tu edad con un número del 3 al 12, por favor",
+  profileSaved: "Perfil guardado correctamente",
+  profileDeleted: "Perfil eliminado",
+  avatarChanged: "Avatar actualizado",
+  help: "Presiona el micrófono y habla claro",
+  readingHelp: "Si no sabes leer, solo escucha mi voz y repite",
+  correct: "¡Muy bien!",
+  excellent: "¡Excelente trabajo!",
+  tryAgain: "Inténtalo otra vez, ¡tú puedes!",
+  greatJob: "¡Lo estás haciendo genial!",
 };
