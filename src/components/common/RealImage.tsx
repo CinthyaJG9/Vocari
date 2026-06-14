@@ -1,76 +1,69 @@
-
-// If TypeScript cannot find module declarations for images, declare them as any.
-// This avoids the need for separate .d.ts files.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import dogImg from "../../assets/images/dog.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import catImg from "../../assets/images/cat.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import rabbitImg from "../../assets/images/rabbit.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import mouseImg from "../../assets/images/mouse.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import sunImg from "../../assets/images/sun.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import moonImg from "../../assets/images/moon.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import starImg from "../../assets/images/star.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import game1Img from "../../assets/images/game1.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import game2Img from "../../assets/images/game2.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import game3Img from "../../assets/images/game3.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import avatar1Img from "../../assets/images/avatar1.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import avatar2Img from "../../assets/images/avatar2.jpg";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import avatar3Img from "../../assets/images/avatar3.jpg";
-
-
-const images: Record<string, string> = {
-  dog: dogImg,
-  cat: catImg,
-  rabbit: rabbitImg,
-  mouse: mouseImg,
-  sun: sunImg,
-  moon: moonImg,
-  star: starImg,
-  game1: game1Img,
-  game2: game2Img,
-  game3: game3Img,
-  avatar1: avatar1Img,
-  avatar2: avatar2Img,
-  avatar3: avatar3Img,
-};
+import { useState, useEffect } from "react";
+import { getImage } from "../../services/imageService";
 
 interface RealImageProps {
   type: string;
-  size?: "small" | "normal" | "large";
   className?: string;
 }
 
+// Imágenes locales
+const localImages: Record<string, string> = {
+  avatar1: "/src/assets/images/avatar1.jpg",
+  avatar2: "/src/assets/images/avatar2.jpg",
+  avatar3: "/src/assets/images/avatar3.jpg",
+  cat: "/src/assets/images/cat.jpg",
+  dog: "/src/assets/images/dog.jpg",
+  rabbit: "/src/assets/images/rabbit.jpg",
+  game1: "/src/assets/images/game1.jpg",
+  game2: "/src/assets/images/game2.jpg",
+  game3: "/src/assets/images/game3.jpg",
+  mouse: "/src/assets/images/mouse.jpg",
+  sun: "/src/assets/images/sun.jpg",
+  moon: "/src/assets/images/moon.jpg",
+  star: "/src/assets/images/star.jpg",
+  fox: "/src/assets/images/fox.jpg",
+  bear: "/src/assets/images/bear.png",
+  penguin: "/src/assets/images/penguin.png",
+  dragon: "/src/assets/images/dragon.png",
+  unicorn: "/src/assets/images/unicorn.png",
+};
+
 export const RealImage = ({ type, className = "" }: RealImageProps) => {
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      setLoading(true);
+      
+      if (localImages[type]) {
+        setImageUrl(localImages[type]);
+        setLoading(false);
+      } else {
+        const url = await getImage(type);
+        setImageUrl(url);
+        setLoading(false);
+      }
+    };
+    
+    loadImage();
+  }, [type]);
+
+  if (loading) {
+    return (
+      <div className={`bg-purple-100 animate-pulse rounded-xl flex items-center justify-center ${className}`}>
+        <span className="text-2xl text-purple-400">🖼️</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={`w-full h-full overflow-hidden rounded-2xl shadow-lg ${className}`}>
-      <img
-        src={images[type]}
+    <div className={className}>
+      <img 
+        src={imageUrl} 
         alt={type}
-        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+        className="w-full h-full object-cover rounded-xl"
+        loading="lazy"
       />
     </div>
   );

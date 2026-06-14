@@ -6,6 +6,7 @@ import { EditNameModal } from "../common/EditNameModal";
 import { speak, speakWithQueue, cancelSpeak, assistantPhrases } from "../../services/warmVoiceService";
 import { listen } from "../../services/voiceService";
 import type { UserProfile } from "../../types";
+import { avatars } from "../../data/avatar"; 
 
 interface VoiceSetupScreenProps {
   onComplete: (profile: UserProfile) => void;
@@ -21,14 +22,9 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
   const [showEditModal, setShowEditModal] = useState(false);
   const [parentHelpActive, setParentHelpActive] = useState(false);
   const recognitionRef = useRef<any>(null);
-
-  const avatarOptions = [
-    { id: "avatar1", name: "Niña" },
-    { id: "avatar2", name: "Niño" },
-    { id: "avatar3", name: "Amiga" },
-    { id: "cat", name: "Gato" },
-    { id: "dog", name: "Perro" },
-  ];
+  
+  // Avatares básicos (gratis por defecto)
+  const basicAvatars = avatars.filter(a => a.default);
 
   // Iniciar bienvenida con voz cálida
   useEffect(() => {
@@ -394,19 +390,21 @@ export const VoiceSetupScreen = ({ onComplete, onBack }: VoiceSetupScreenProps) 
           {step === "avatar" && (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Elige tu avatar</h2>
-              <div className="flex flex-wrap justify-center gap-4 mb-8">
-                {avatarOptions.map((avatar) => (
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+                {basicAvatars.map((avatar) => (
                   <button
                     key={avatar.id}
                     onClick={() => setSelectedAvatar(avatar.id)}
-                    className={`w-24 h-24 rounded-2xl overflow-hidden transition-all ${
-                      selectedAvatar === avatar.id
-                        ? "ring-4 ring-purple-500 scale-110 shadow-xl"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all
+                      ${selectedAvatar === avatar.id
+                        ? "bg-purple-100 ring-2 ring-purple-500 scale-105"
+                        : "hover:bg-gray-50"}
+                    `}
                   >
-                    <RealImage type={avatar.id} />
-                    <p className="text-xs text-gray-600 mt-1">{avatar.name}</p>
+                    <div className="w-16 h-16 rounded-xl overflow-hidden">
+                      <RealImage type={avatar.image} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">{avatar.name}</span>
                   </button>
                 ))}
               </div>

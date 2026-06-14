@@ -34,9 +34,9 @@ export const ProfileSelectScreen = ({
             onClick={() => onSelectProfile(profile)}
             className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-xl hover:shadow-2xl transition-all"
           >
-            <div className="w-24 h-24 md:w-40 md:h-40 mx-auto mb-3 md:mb-6">
-              <RealImage type={profile.avatar} />
-            </div>
+<div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-3 md:mb-6">
+  <RealImage type={profile.avatar} />
+</div>
             <h3 className="text-xl md:text-4xl font-bold text-gray-800 mb-1 md:mb-3">
               {profile.name}
             </h3>
