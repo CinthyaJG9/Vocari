@@ -7,19 +7,21 @@ interface ProfileSelectScreenProps {
   profiles: UserProfile[];
   onSelectProfile: (profile: UserProfile) => void;
   onNewProfile: () => void;
+  themeClass?: string; 
 }
 
 export const ProfileSelectScreen = ({
   profiles,
   onSelectProfile,
   onNewProfile,
+  themeClass = "from-purple-100 via-blue-100 to-pink-100", 
 }: ProfileSelectScreenProps) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full max-w-6xl mx-auto p-4"
+      className={`w-full max-w-6xl mx-auto p-4 bg-gradient-to-br ${themeClass} min-h-screen`}
     >
       <h1 className="text-4xl md:text-7xl font-bold text-purple-600 text-center mb-8 md:mb-16">
         ¿Quién va a jugar?
@@ -34,9 +36,9 @@ export const ProfileSelectScreen = ({
             onClick={() => onSelectProfile(profile)}
             className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-xl hover:shadow-2xl transition-all"
           >
-<div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-3 md:mb-6">
-  <RealImage type={profile.avatar} />
-</div>
+            <div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-3 md:mb-6 rounded-2xl overflow-hidden bg-purple-50">
+              <RealImage type={profile.avatar} className="w-full h-full" />
+            </div>
             <h3 className="text-xl md:text-4xl font-bold text-gray-800 mb-1 md:mb-3">
               {profile.name}
             </h3>

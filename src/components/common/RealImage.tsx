@@ -58,7 +58,7 @@ export const RealImage = ({ type, className = "" }: RealImageProps) => {
   }
 
   return (
-    <div className={className}>
+    <div className={`${className}`}>
       <img 
         src={imageUrl} 
         alt={type}

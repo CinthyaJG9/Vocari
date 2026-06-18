@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Home, Star, Mic, Loader2, ArrowRight, Volume2 } from "lucide-react";
 import { createPhrase } from "../../utils/wordVisuals";
 import { speak, speakWithQueue, cancelSpeak, assistantPhrases } from "../../services/warmVoiceService";
+import { triggerEquippedEffect } from "../../services/effectsServices";
 
 interface Activity2Props {
   age: number;
@@ -11,7 +12,16 @@ interface Activity2Props {
   onAwardStars: (amount: number) => void;
   onFinish: () => void;
   onExit: () => void;
+  themeClass?: string;
+  onUpdateStats?: (updates: Partial<{
+    totalWords: number;
+    totalSounds: number;
+    perfectStreak: number;
+    activitiesCompleted: number;
+    totalStars: number;
+  }>) => void;
 }
+
 
 // ============================================
 // FRASES POR EDAD
@@ -344,6 +354,7 @@ const RPractice = ({ word, onComplete, userName }: {
         speakWithQueue(`¡Muy bien, ${userName || "amigo"}! La R te quedó genial.`, 0.8).then(() => {
           setTimeout(() => onComplete(true), 1000);
         });
+        triggerEquippedEffect();
       } else if (attempts === 0) {
         setAttempts(1);
         setFeedback(`Dijiste "${spoken}". ¡Intenta de nuevo! La R se pronuncia fuerte`);
@@ -430,6 +441,7 @@ const YoungActivity = ({ phrase, image, hint, onComplete, userName }: {
         setFeedback("🎉 ¡Excelente!");
         setStep('feedback');
         speakWithQueue(`¡Muy bien, ${userName || "amigo"}!`, 0.8).then(() => onComplete(stars, rWords));
+        triggerEquippedEffect();
       } else if (attempts === 0) {
         setAttempts(1);
         setFeedback(`Escuché "${spoken}". ¡Intentémoslo una vez más!`);
@@ -440,6 +452,7 @@ const YoungActivity = ({ phrase, image, hint, onComplete, userName }: {
         setFeedback("¡Bien intentado! ✨");
         setStep('feedback');
         speakWithQueue(`Buen intento. La frase era "${phrase}"`, 0.8).then(() => onComplete(stars, rWords));
+        triggerEquippedEffect();
       }
     };
     recognition.onerror = () => { setIsRecording(false); setFeedback("No te escuché. ¡Inténtalo de nuevo!"); setStep('speaking'); };
@@ -558,6 +571,7 @@ const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, v
         stars = 3;
         setFeedback(`🎉 ¡Excelente! Las palabras son correctas`);
         speakWithQueue(`¡Increíble, ${userName || "amigo"}! Las palabras son "${answer1}" y "${answer2}".`, 0.8).then(() => onComplete(stars));
+        triggerEquippedEffect();
       } else if (attempts === 0) {
         setAttempts(1);
         let missing = []; if (!found1) missing.push(answer1); if (!found2) missing.push(answer2);
@@ -569,6 +583,7 @@ const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, v
         setFeedback("¡Buen intento! 💡");
         setStep('feedback');
         speakWithQueue(`Buen esfuerzo. Las palabras eran "${answer1}" y "${answer2}"`, 0.8).then(() => onComplete(stars));
+        triggerEquippedEffect();
       }
     };
     recognition.onerror = () => { setIsRecording(false); setFeedback("No capturé el audio. Intenta hablar claro 🎤"); setStep('speaking'); };
@@ -616,7 +631,7 @@ const OldActivity = ({ phrase, image, hint1, hint2, answer1, answer2, visual1, v
 // COMPONENTE PRINCIPAL
 // ============================================
 
-export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity2Props) => {
+export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit, themeClass = "from-purple-100 via-blue-100 to-pink-100", onUpdateStats }: Activity2Props) => {
   const isYoung = age <= 7;
   const phrases = isYoung ? youngPhrases : oldPhrases;
   const [shuffledPhrases, setShuffledPhrases] = useState<any[]>([]);
@@ -649,7 +664,10 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
       setPendingRPracticeWords(rWords);
       setShowRPractice(true);
     } else {
-      if (earnedStars > 0) onAwardStars(earnedStars);
+      if (earnedStars > 0) {
+        onAwardStars(earnedStars);
+        triggerEquippedEffect();
+      }
       setShowActivity(false);
       advanceToNext();
     }
@@ -657,13 +675,19 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
 
   const handleRPracticeComplete = (success: boolean) => {
     setShowRPractice(false);
-    if (tempStars > 0) onAwardStars(tempStars);
+    if (tempStars > 0) {
+      onAwardStars(tempStars);
+      triggerEquippedEffect();
+    }
     setShowActivity(false);
     advanceToNext();
   };
 
   const handleOldComplete = (earnedStars: number) => {
-    if (earnedStars > 0) onAwardStars(earnedStars);
+    if (earnedStars > 0) {
+      onAwardStars(earnedStars);
+      triggerEquippedEffect();
+    }
     setShowActivity(false);
     advanceToNext();
   };
@@ -676,7 +700,7 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   // Pantalla Inicial
   if (!showActivity && !sessionCompleted && shuffledPhrases.length > 0 && currentIndex === 0) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} p-4`}>
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md"><Home size={24} className="text-purple-600" /></button>
@@ -697,7 +721,7 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   // Pantalla de finalización
   if (sessionCompleted) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} flex items-center justify-center p-4`}>
         <div className="max-w-md w-full mx-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 text-center">
             <motion.div
@@ -725,7 +749,7 @@ export const Activity2 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   if (!currentPhrase) return null;
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+    <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} p-4`}>
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md"><Home size={24} className="text-purple-600" /></button>

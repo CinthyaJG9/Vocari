@@ -49,19 +49,20 @@ export const shopItems: RewardItem[] = [
     image: "dragon",
     unlocked: false 
   },
-  { 
-    id: "unicorn", 
+  {
+    id: "unicorn",
     name: "Unicornio",
-    description: "Un unicornio mágico y encantador", 
-    price: 120, 
-    category: "avatar", 
+    description: "Un unicornio mágico y brillante",
+    price: 200,
+    category: "avatar",
     image: "unicorn",
-    unlocked: false 
+    unlocked: false
   },
+  
   // ============================================
-  // TEMAS (cambian el fondo de la app)
+  // TEMAS
   // ============================================
-  { 
+  {
     id: "theme_night", 
     name: "Tema Nocturno", 
     description: "Fondo de noche estrellada", 
@@ -113,7 +114,7 @@ export const shopItems: RewardItem[] = [
   },
   
   // ============================================
-  // EFECTOS
+  // EFECTOS (con EMOJIS en lugar de imágenes)
   // ============================================
   { 
     id: "effect_confetti", 
@@ -121,7 +122,7 @@ export const shopItems: RewardItem[] = [
     description: "Lluvia de confeti al ganar", 
     price: 80, 
     category: "effect", 
-    image: "effect_confetti",
+    image: "🎊",
     unlocked: false 
   },
   { 
@@ -130,7 +131,7 @@ export const shopItems: RewardItem[] = [
     description: "Espectáculo de fuegos al ganar", 
     price: 150, 
     category: "effect", 
-    image: "effect_fireworks",
+    image: "🎆",
     unlocked: false 
   },
   { 
@@ -139,20 +140,38 @@ export const shopItems: RewardItem[] = [
     description: "Destellos de luz al acertar", 
     price: 60, 
     category: "effect", 
-    image: "effect_sparkles",
+    image: "✨",
+    unlocked: false 
+  },
+  { 
+    id: "effect_rainbow", 
+    name: "Arcoíris", 
+    description: "Un arcoíris al completar", 
+    price: 90, 
+    category: "effect", 
+    image: "🌈",
+    unlocked: false 
+  },
+  { 
+    id: "effect_stars", 
+    name: "Lluvia de Estrellas", 
+    description: "Estrellas brillantes al ganar", 
+    price: 120, 
+    category: "effect", 
+    image: "⭐",
     unlocked: false 
   },
   
   // ============================================
-  // INSIGNIAS / LOGROS
-  // ============================================
+  // INSIGNIAS 
+ // ============================================
   { 
     id: "badge_word_master", 
     name: "Maestro de Palabras", 
     description: "Completa 50 palabras", 
     price: 0, 
     category: "badge", 
-    image: "badge_word",
+    image: "📚",
     unlocked: false 
   },
   { 
@@ -161,7 +180,7 @@ export const shopItems: RewardItem[] = [
     description: "Completa 30 sonidos", 
     price: 0, 
     category: "badge", 
-    image: "badge_sound",
+    image: "🎵",
     unlocked: false 
   },
   { 
@@ -170,7 +189,25 @@ export const shopItems: RewardItem[] = [
     description: "10 respuestas correctas seguidas", 
     price: 0, 
     category: "badge", 
-    image: "badge_perfect",
+    image: "🏆",
+    unlocked: false 
+  },
+  { 
+    id: "badge_explorer", 
+    name: "Explorador", 
+    description: "Completa todas las actividades", 
+    price: 0, 
+    category: "badge", 
+    image: "🧭",
+    unlocked: false 
+  },
+  { 
+    id: "badge_star_collector", 
+    name: "Coleccionista de Estrellas", 
+    description: "Acumula 100 estrellas", 
+    price: 0, 
+    category: "badge", 
+    image: "🌟",
     unlocked: false 
   },
 ];

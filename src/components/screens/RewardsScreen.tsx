@@ -5,11 +5,17 @@ interface RewardsScreenProps {
   starsEarned: number;
   totalStars: number;
   onBackToMenu: () => void;
+  themeClass?: string;
 }
 
-export const RewardsScreen = ({ starsEarned, totalStars, onBackToMenu }: RewardsScreenProps) => {
+export const RewardsScreen = ({
+  starsEarned,
+  totalStars,
+  onBackToMenu,
+  themeClass = "from-purple-100 via-blue-100 to-pink-100", 
+}: RewardsScreenProps) => {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
+    <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} flex items-center justify-center p-4`}>
       <div className="max-w-md w-full mx-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}

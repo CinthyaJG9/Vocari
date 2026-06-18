@@ -4,6 +4,7 @@ import { Home, Star, Volume2, RefreshCw, ArrowRight, Shuffle, Loader2 } from "lu
 import { getImage } from "../../services/imageService";
 import { speak, speakWithQueue, cancelSpeak } from "../../services/warmVoiceService";
 import { playSoundByQuery, soundActivities } from "../../services/freesoundService";
+import { triggerEquippedEffect } from "../../services/effectsServices";
 
 interface Activity3Props {
   age: number;
@@ -12,6 +13,14 @@ interface Activity3Props {
   onAwardStars: (amount: number) => void;
   onFinish: () => void;
   onExit: () => void;
+  themeClass?: string;
+  onUpdateStats?: (updates: Partial<{
+    totalWords: number;
+    totalSounds: number;
+    perfectStreak: number;
+    activitiesCompleted: number;
+    totalStars: number;
+  }>) => void;
 }
 
 // ============================================
@@ -59,10 +68,11 @@ const oldActivities = [
 // COMPONENTE PARA NIÑOS PEQUEÑOS (SONIDOS)
 // ============================================
 
-const YoungActivity = ({ activity, onComplete, userName }: { 
+const YoungActivity = ({ activity, onComplete, userName, themeClass = "from-purple-100 via-blue-100 to-pink-100" }: { 
   activity: { soundQuery: string; image: string; text: string };
   userName?: string;
   onComplete: (stars: number) => void;
+  themeClass?: string;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,6 +138,7 @@ const YoungActivity = ({ activity, onComplete, userName }: {
       setFeedback("🎉 ¡Excelente! +3 estrellas");
       await speakWithQueue(`¡Muy bien, ${userName || "amigo"}! El sonido es de ${activity.text}`, 0.8);
       setTimeout(() => onComplete(3), 2000);
+      triggerEquippedEffect();
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -135,6 +146,7 @@ const YoungActivity = ({ activity, onComplete, userName }: {
         setFeedback(`El sonido es de ${activity.text}. ¡Sigue practicando! +1 estrella`);
         await speakWithQueue(`El sonido es de ${activity.text}.`, 0.7);
         setTimeout(() => onComplete(1), 2000);
+        triggerEquippedEffect();
       } else {
         setFeedback(`No es ${selected.text}. ¡Intenta de nuevo!`);
         await speakWithQueue(`No es ${selected.text}. Escucha de nuevo:`, 0.7);
@@ -146,7 +158,7 @@ const YoungActivity = ({ activity, onComplete, userName }: {
   
   if (loadingImages) {
     return (
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-10 text-center">
+      <div className={`bg-white rounded-3xl shadow-xl overflow-hidden p-10 text-center bg-gradient-to-br ${themeClass}`}>
         <Loader2 size={48} className="animate-spin text-purple-600 mx-auto" />
         <p className="text-purple-600 mt-4">Cargando imágenes...</p>
       </div>
@@ -154,7 +166,7 @@ const YoungActivity = ({ activity, onComplete, userName }: {
   }
   
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center">
+    <div className={`bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center bg-gradient-to-br ${themeClass}`}>
       <div className="bg-purple-50 rounded-2xl p-8 mb-6">
         <span className="text-8xl">🎵</span>
         <p className="text-purple-500 mt-2">¿Qué animal u objeto hace este sonido?</p>
@@ -206,10 +218,11 @@ const YoungActivity = ({ activity, onComplete, userName }: {
 // COMPONENTE PARA NIÑOS GRANDES (SOLO GUIONES)
 // ============================================
 
-const OldActivity = ({ activity, onComplete, userName }: { 
+const OldActivity = ({ activity, onComplete, userName, themeClass = "from-purple-100 via-blue-100 to-pink-100" }: { 
   activity: { word: string; image: string; hint: string; underscores: string };
   userName?: string;
   onComplete: (stars: number) => void;
+  themeClass?: string;
 }) => {
   const [letters, setLetters] = useState<string[]>([]);
   const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
@@ -265,6 +278,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
       setMessage("🎉 ¡Excelente! +3 estrellas");
       await speakWithQueue(`¡Muy bien, ${userName || "amigo"}! Formaste la palabra ${activity.word}`, 0.8);
       setTimeout(() => onComplete(3), 2000);
+      triggerEquippedEffect();
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -272,6 +286,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
         setMessage(`La palabra era "${activity.word}". ¡Sigue practicando! +1 estrella`);
         await speakWithQueue(`La palabra correcta era ${activity.word}.`, 0.7);
         setTimeout(() => onComplete(1), 2000);
+        triggerEquippedEffect();
       } else {
         setMessage(`"${formedWord}" no es correcta. ¡Intenta de nuevo!`);
         await speakWithQueue(`"${formedWord}" no es correcta. Sigue intentando`, 0.7);
@@ -287,7 +302,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
   };
   
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center">
+    <div className={`bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 text-center bg-gradient-to-br ${themeClass}`}>
       <div className="flex flex-col md:flex-row gap-6 mb-6">
         <div className="bg-purple-50 rounded-2xl p-4 flex-1 flex items-center justify-center min-h-[150px]">
           {loadingImage ? (
@@ -366,7 +381,7 @@ const OldActivity = ({ activity, onComplete, userName }: {
 // COMPONENTE PRINCIPAL
 // ============================================
 
-export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity3Props) => {
+export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit, themeClass = "from-purple-100 via-blue-100 to-pink-100", onUpdateStats }: Activity3Props) => {
   const isYoung = age <= 7;
   const activities = isYoung ? soundActivities : oldActivities;
   
@@ -393,7 +408,10 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   };
   
   const handleComplete = (earnedStars: number) => {
-    if (earnedStars > 0) onAwardStars(earnedStars);
+    if (earnedStars > 0) {
+      onAwardStars(earnedStars);
+      triggerEquippedEffect();
+    }
     setShowActivity(false);
     advanceToNext();
   };
@@ -408,7 +426,7 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   // Pantalla Inicial
   if (!showActivity && !sessionCompleted && shuffledActivities.length > 0 && currentIndex === 0) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} p-4`}>
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md"><Home size={24} className="text-purple-600" /></button>
@@ -429,7 +447,7 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   // Pantalla final
   if (sessionCompleted) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center p-4">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} flex items-center justify-center p-4`}>
         <div className="max-w-md w-full mx-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 text-center">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-4">
@@ -452,7 +470,7 @@ export const Activity3 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   if (!currentActivity) return null;
   
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+    <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} p-4`}>
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button onClick={onExit} className="bg-white rounded-full p-3 shadow-md"><Home size={24} className="text-purple-600" /></button>

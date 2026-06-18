@@ -8,11 +8,12 @@ interface Props {
   games: Array<{ name: string; color: string; image: string }>;
   onSelectGame: (index: number) => void;
   onChangeProfile: () => void;
-  onOpenSettings: () => void; 
+  onOpenSettings: () => void;
   onOpenShop: () => void;
   onScrollLeft: () => void;
   onScrollRight: () => void;
   carouselRef: React.RefObject<HTMLDivElement | null>;
+  themeClass?: string; 
 }
 
 export const MenuScreen = ({
@@ -21,11 +22,12 @@ export const MenuScreen = ({
   games,
   onSelectGame,
   onChangeProfile,
-  onOpenSettings,  // ← un solo botón
+  onOpenSettings,
   onOpenShop,
   onScrollLeft,
   onScrollRight,
   carouselRef,
+  themeClass = "from-purple-100 via-blue-100 to-pink-100",
 }: Props) => {
   return (
     <motion.div
@@ -33,13 +35,12 @@ export const MenuScreen = ({
       animate={{ opacity: 1 }}
       className="w-full max-w-7xl mx-auto px-4 md:px-6"
     >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 md:mb-12">
-        <div className="bg-white rounded-full px-5 md:px-8 py-2 md:py-4 shadow-lg flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-center sm:justify-start">
+      {/* Header - Aplicando el tema al fondo */}
+      <div className={`flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 md:mb-12 bg-gradient-to-r ${themeClass} rounded-full px-5 md:px-8 py-2 md:py-4 shadow-lg`}>
+        <div className="bg-white/80 backdrop-blur-sm rounded-full px-4 md:px-6 py-1 md:py-2 flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-center sm:justify-start">
           <p className="text-xl sm:text-2xl md:text-4xl font-bold text-purple-600 truncate max-w-[200px] sm:max-w-none">
             Hola, {profileName}
           </p>
-          {/* Botón Configuración (unificado) */}
           <button
             onClick={onOpenSettings}
             className="p-1 md:p-2 hover:bg-purple-100 rounded-full transition-colors"
@@ -51,7 +52,7 @@ export const MenuScreen = ({
         
         <div className="flex items-center gap-3 md:gap-4">
           {/* Estrellas */}
-          <div className="flex items-center gap-2 md:gap-3 bg-white rounded-full px-4 md:px-8 py-2 md:py-4 shadow-lg">
+          <div className="flex items-center gap-2 md:gap-3 bg-white/80 backdrop-blur-sm rounded-full px-4 md:px-8 py-1 md:py-3 shadow-lg">
             <Star className="text-yellow-500 fill-yellow-500" size={24} />
             <span className="text-xl md:text-4xl font-bold text-purple-600">{stars}</span>
           </div>
@@ -59,7 +60,7 @@ export const MenuScreen = ({
           {/* Botón Tienda */}
           <button
             onClick={onOpenShop}
-            className="bg-white rounded-full p-2 md:p-4 shadow-lg hover:shadow-xl transition-all"
+            className="bg-white/80 backdrop-blur-sm rounded-full p-2 md:p-4 shadow-lg hover:shadow-xl transition-all"
             title="Tienda de recompensas"
           >
             <ShoppingBag size={24} className="text-purple-600" />
@@ -68,7 +69,7 @@ export const MenuScreen = ({
           {/* Botón Cambiar perfil */}
           <button
             onClick={onChangeProfile}
-            className="bg-white rounded-full p-2 md:p-4 shadow-lg hover:shadow-xl transition-all"
+            className="bg-white/80 backdrop-blur-sm rounded-full p-2 md:p-4 shadow-lg hover:shadow-xl transition-all"
             title="Cambiar de perfil"
           >
             <LogOut size={24} className="text-purple-600" />
@@ -125,6 +126,17 @@ export const MenuScreen = ({
           <ChevronRight size={28} className="text-purple-600" />
         </button>
       </div>
+
+      {/* Estilo para ocultar scrollbar */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </motion.div>
   );
 };

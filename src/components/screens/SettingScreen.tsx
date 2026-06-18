@@ -1,11 +1,37 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Home, Star, Palette, RefreshCw, CheckCircle, Edit2, ChevronRight } from "lucide-react";
+import { Home, Star, Palette, RefreshCw, CheckCircle, Edit2, Sparkles, Trophy } from "lucide-react";
 import { RealImage } from "../common/RealImage";
 import { EditNameModal } from "../common/EditNameModal";
 import { speakWithQueue } from "../../services/warmVoiceService";
 import { shopItems } from "../../data/shopItems";
 import { avatars } from "../../data/avatar";
+import {
+  equipEffect,
+  unequipEffect,
+  triggerEquippedEffect,
+  checkBadgeConditions,
+  isBadgeClaimed,
+  claimBadge,
+} from "../../services/effectsServices";
+
+// Items de efectos para mostrar en configuración
+const effectItems = [
+  { id: 'effect_confetti', name: 'Confeti Mágico', emoji: '🎊' },
+  { id: 'effect_fireworks', name: 'Fuegos Artificiales', emoji: '🎆' },
+  { id: 'effect_sparkles', name: 'Destellos Mágicos', emoji: '✨' },
+  { id: 'effect_rainbow', name: 'Arcoíris', emoji: '🌈' },
+  { id: 'effect_stars', name: 'Lluvia de Estrellas', emoji: '⭐' },
+];
+
+// Items de logros/insignias
+const badgeItems = [
+  { id: 'badge_word_master', name: 'Maestro de Palabras', emoji: '📚', requirement: 'Completa 50 palabras' },
+  { id: 'badge_sound_master', name: 'Maestro de Sonidos', emoji: '🎵', requirement: 'Completa 30 sonidos' },
+  { id: 'badge_perfect', name: 'Perfecto', emoji: '🏆', requirement: '10 respuestas correctas seguidas' },
+  { id: 'badge_explorer', name: 'Explorador', emoji: '🧭', requirement: 'Completa todas las actividades' },
+  { id: 'badge_star_collector', name: 'Coleccionista de Estrellas', emoji: '🌟', requirement: 'Acumula 100 estrellas' },
+];
 
 interface SettingsScreenProps {
   profile: {
@@ -16,22 +42,42 @@ interface SettingsScreenProps {
     avatar: string;
   };
   currentTheme: string;
+  themeClass?: string;
   unlockedAvatars: string[];
   unlockedThemes: string[];
+  unlockedEffects?: string[];
+  equippedEffect?: string | null;
+  claimedBadges?: string[];
+  stats?: {
+    totalWords: number;
+    totalSounds: number;
+    perfectStreak: number;
+    activitiesCompleted: number;
+    totalStars: number;
+  };
   onSaveAvatar: (avatarId: string) => void;
-  onEquipTheme: (themeClass: string, themeId: string) => void;
+  onEquipTheme: (themeClass: string) => void;
   onResetTheme: () => void;
+  onEquipEffect: (effectId: string) => void;
+  onUnequipEffect: () => void;
   onBack: () => void;
 }
 
 export const SettingsScreen = ({
   profile,
   currentTheme,
-  unlockedAvatars,
-  unlockedThemes,
+  themeClass = "from-purple-100 via-blue-100 to-pink-100",
+  unlockedAvatars = [],
+  unlockedThemes = [],
+  unlockedEffects = [],
+  equippedEffect = null,
+  claimedBadges = [],
+  stats = { totalWords: 0, totalSounds: 0, perfectStreak: 0, activitiesCompleted: 0, totalStars: 0 },
   onSaveAvatar,
   onEquipTheme,
   onResetTheme,
+  onEquipEffect,
+  onUnequipEffect,
   onBack,
 }: SettingsScreenProps) => {
   const [showEditNameModal, setShowEditNameModal] = useState(false);
@@ -58,20 +104,38 @@ export const SettingsScreen = ({
     setIsSaving(false);
   };
 
-  const handleEquipTheme = async (themeId: string, themeClass: string) => {
+  const handleEquipTheme = async (themeId: string, themeClassValue: string) => {
     if (themeId === "default") {
       onResetTheme();
     } else {
-      onEquipTheme(themeClass, themeId);
+      onEquipTheme(themeClassValue);
     }
     await speakWithQueue(`Tema equipado`, 0.85);
   };
 
-  // Avatares disponibles (desbloqueados)
+  const handleEquipEffect = async (effectId: string) => {
+    onEquipEffect(effectId);
+    await speakWithQueue(`¡Efecto equipado!`, 0.85);
+    setTimeout(() => triggerEquippedEffect(), 500);
+  };
+
+  const handleUnequipEffect = async () => {
+    onUnequipEffect();
+    await speakWithQueue(`Efecto desequipado`, 0.85);
+  };
+
+  const handleClaimBadge = async (badgeId: string) => {
+    if (!isBadgeClaimed(badgeId) && checkBadgeConditions(badgeId, stats)) {
+      claimBadge(badgeId);
+      await speakWithQueue(`¡Logro desbloqueado!`, 0.85);
+      setTimeout(() => triggerEquippedEffect(), 500);
+    }
+  };
+
   const availableAvatars = avatars.filter(a => unlockedAvatars.includes(a.id));
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+    <div className={`min-h-screen w-full transition-all duration-500 bg-gradient-to-br ${themeClass} p-4`}>
       <div className="max-w-2xl mx-auto">
         
         {/* Header */}
@@ -102,7 +166,6 @@ export const SettingsScreen = ({
           </div>
           
           <div className="p-6">
-            {/* Información del perfil */}
             <div className="flex items-center gap-6 mb-6">
               <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg bg-purple-50">
                 <RealImage type={profile.avatar} className="w-full h-full" />
@@ -125,7 +188,6 @@ export const SettingsScreen = ({
               </div>
             </div>
 
-            {/* Selector de avatar */}
             <p className="font-semibold text-gray-700 mb-3">Elige tu avatar</p>
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-4">
               {availableAvatars.map((avatar) => (
@@ -161,7 +223,7 @@ export const SettingsScreen = ({
         </div>
 
         {/* ========== SECCIÓN TEMAS ========== */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-4">
             <h3 className="text-white font-bold text-xl flex items-center gap-2">
               <Palette size={20} /> Apariencia
@@ -214,20 +276,124 @@ export const SettingsScreen = ({
           </div>
         </div>
 
+        {/* ========== SECCIÓN EFECTOS ========== */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-4">
+            <h3 className="text-white font-bold text-xl flex items-center gap-2">
+              <Sparkles size={20} /> Efectos
+            </h3>
+          </div>
+          
+          <div className="p-6">
+            <p className="font-semibold text-gray-700 mb-3">Efectos desbloqueados</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {effectItems.map((effect) => {
+                const isUnlocked = unlockedEffects.includes(effect.id);
+                const isEquipped = equippedEffect === effect.id;
+                
+                return (
+                  <div
+                    key={effect.id}
+                    className={`p-3 rounded-xl text-center border-2 transition-all
+                      ${isUnlocked 
+                        ? isEquipped 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-200 hover:border-purple-300'
+                        : 'border-gray-100 opacity-50'}
+                    `}
+                  >
+                    <span className="text-4xl block mb-1">{effect.emoji}</span>
+                    <p className="text-xs font-medium text-gray-700">{effect.name}</p>
+                    {isUnlocked ? (
+                      <div className="flex gap-1 justify-center mt-2">
+                        {isEquipped ? (
+                          <button
+                            onClick={handleUnequipEffect}
+                            className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-red-600 transition-all"
+                          >
+                            Desequipar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleEquipEffect(effect.id)}
+                            className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-purple-600 transition-all"
+                          >
+                            Equipar
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-2">🔒 Compra en tienda</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ========== SECCIÓN LOGROS ========== */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-4">
+            <h3 className="text-white font-bold text-xl flex items-center gap-2">
+              <Trophy size={20} /> Logros
+            </h3>
+          </div>
+          
+          <div className="p-6">
+            <p className="font-semibold text-gray-700 mb-3">Insignias</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {badgeItems.map((badge) => {
+                const isClaimed = claimedBadges.includes(badge.id);
+                const canClaim = checkBadgeConditions(badge.id, stats);
+                
+                return (
+                  <div
+                    key={badge.id}
+                    className={`p-3 rounded-xl text-center border-2 transition-all
+                      ${isClaimed 
+                        ? 'border-green-500 bg-green-50' 
+                        : canClaim
+                          ? 'border-yellow-400 bg-yellow-50 animate-pulse'
+                          : 'border-gray-200 opacity-60'}
+                    `}
+                  >
+                    <span className="text-4xl block mb-1">{badge.emoji}</span>
+                    <p className="text-xs font-medium text-gray-700">{badge.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">{badge.requirement}</p>
+                    {isClaimed ? (
+                      <span className="text-green-500 text-xs font-bold flex items-center justify-center gap-1 mt-2">
+                        <CheckCircle size={14} /> Desbloqueado
+                      </span>
+                    ) : canClaim ? (
+                      <button
+                        onClick={() => handleClaimBadge(badge.id)}
+                        className="mt-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-600 transition-all"
+                      >
+                        ¡Reclamar!
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400 mt-2">🔒 Bloqueado</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* Información adicional */}
         <div className="mt-6 bg-blue-50 rounded-2xl p-4 text-center">
           <p className="text-blue-600 text-sm">
-            💡 Compra nuevos temas en la tienda para personalizar tu experiencia
+            💡 Compra nuevos temas y efectos en la tienda para personalizar tu experiencia
           </p>
         </div>
       </div>
 
-      {/* Modal de edición de nombre */}
       {showEditNameModal && (
         <EditNameModal
           currentName={profile.name}
           onSave={(newName) => {
-            // Aquí actualizar el nombre del perfil
             speakWithQueue(`Nombre cambiado a ${newName}`, 0.85);
             setShowEditNameModal(false);
           }}

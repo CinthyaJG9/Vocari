@@ -66,9 +66,9 @@ export const EditProfileModal = ({ profile, onClose, onSave, onDelete, unlockedA
             <>
               {/* Información del perfil */}
               <div className="text-center mb-6">
-                <div className="w-24 h-24 mx-auto mb-3 rounded-2xl overflow-hidden shadow-lg">
-                  <RealImage type={profile.avatar} className="w-full h-full" />
-                </div>
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-purple-50">
+                <RealImage type={profile.avatar} className="w-full h-full" />
+              </div>
                 <p className="text-2xl font-bold text-gray-800">{profile.name}</p>
                 <p className="text-gray-500">{profile.age} años</p>
                 <div className="flex justify-center items-center gap-1 mt-1">

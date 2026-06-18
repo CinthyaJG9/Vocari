@@ -15,6 +15,20 @@ import { Activity3 } from "../components/activities/Activity3";
 import { FloatingAssistant } from "../components/assistant/FloatingAssistant";
 import { shopItems } from "../data/shopItems";
 import { speakWithQueue } from "../services/warmVoiceService";
+import { 
+  triggerEquippedEffect, 
+  unlockEffect, 
+  getUnlockedEffects, 
+  getEquippedEffect, 
+  equipEffect,
+  unequipEffect,
+  getClaimedBadges,
+  claimBadge,
+  isBadgeClaimed,
+  checkBadgeConditions,
+  getBadgeName,
+  getBadgeEmoji
+} from "../services/effectsServices";
 
 export default function App() {
   // ========== TODOS LOS HOOKS AL INICIO ==========
@@ -24,6 +38,40 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>("default");
   const carouselRef = useRef<HTMLDivElement>(null);
+  
+  // Estado para efectos
+  const [unlockedEffects, setUnlockedEffects] = useState<string[]>(() => {
+    try {
+      return getUnlockedEffects();
+    } catch (e) {
+      return [];
+    }
+  });
+  const [equippedEffect, setEquippedEffect] = useState<string | null>(() => {
+    try {
+      return getEquippedEffect();
+    } catch (e) {
+      return null;
+    }
+  });
+  
+  // Estado para logros reclamados
+  const [claimedBadges, setClaimedBadges] = useState<string[]>(() => {
+    try {
+      return getClaimedBadges();
+    } catch (e) {
+      return [];
+    }
+  });
+  
+  // Estado para estadísticas de logros
+  const [stats, setStats] = useState({
+    totalWords: 0,
+    totalSounds: 0,
+    perfectStreak: 0,
+    activitiesCompleted: 0,
+    totalStars: 0,
+  });
   
   const { 
     profiles, 
@@ -43,6 +91,38 @@ export default function App() {
   
   const { sayProfileSaved, sayProfileDeleted, sayAvatarChanged } = useWarmAssistant();
 
+  // Cargar estadísticas y logros al iniciar
+  useEffect(() => {
+    try {
+      const savedStats = localStorage.getItem('vocari_stats');
+      if (savedStats) {
+        setStats(JSON.parse(savedStats));
+      }
+      // Verificar logros al cargar
+      checkAllBadges();
+    } catch (e) {
+      console.error('Error loading stats:', e);
+    }
+  }, []);
+
+  // Guardar estadísticas
+  useEffect(() => {
+    try {
+      localStorage.setItem('vocari_stats', JSON.stringify(stats));
+    } catch (e) {
+      console.error('Error saving stats:', e);
+    }
+  }, [stats]);
+
+  // Guardar logros reclamados
+  useEffect(() => {
+    try {
+      localStorage.setItem('vocari_claimed_badges', JSON.stringify(claimedBadges));
+    } catch (e) {
+      console.error('Error saving claimed badges:', e);
+    }
+  }, [claimedBadges]);
+
   // Cargar tema del perfil actual al iniciar o al cambiar de perfil
   useEffect(() => {
     if (currentProfile) {
@@ -54,6 +134,62 @@ export default function App() {
       }
     }
   }, [currentProfile, getProfileTheme]);
+
+  // Guardar efectos al cambiar
+  useEffect(() => {
+    try {
+      localStorage.setItem('vocari_unlocked_effects', JSON.stringify(unlockedEffects));
+    } catch (e) {
+      console.error('Error saving unlocked effects:', e);
+    }
+  }, [unlockedEffects]);
+
+  // Guardar efecto equipado al cambiar
+  useEffect(() => {
+    try {
+      if (equippedEffect) {
+        localStorage.setItem('vocari_equipped_effect', equippedEffect);
+      }
+    } catch (e) {
+      console.error('Error saving equipped effect:', e);
+    }
+  }, [equippedEffect]);
+
+  // Verificar y reclamar logros automáticamente
+  const checkAllBadges = (currentStats = stats) => {
+    const allBadges = [
+      'badge_word_master', 
+      'badge_sound_master', 
+      'badge_perfect', 
+      'badge_explorer', 
+      'badge_star_collector'
+    ];
+    
+    allBadges.forEach(badgeId => {
+      try {
+        if (!isBadgeClaimed(badgeId) && checkBadgeConditions(badgeId, currentStats)) {
+          claimBadge(badgeId);
+          setClaimedBadges(prev => [...prev, badgeId]);
+          const badgeName = getBadgeName(badgeId);
+          const badgeEmoji = getBadgeEmoji(badgeId);
+          speakWithQueue(`¡Logro desbloqueado! ${badgeEmoji} ${badgeName}`, 0.85);
+          setTimeout(() => triggerEquippedEffect(), 500);
+        }
+      } catch (e) {
+        console.error('Error checking badge:', badgeId, e);
+      }
+    });
+  };
+
+  // Función para actualizar estadísticas desde actividades
+  const updateStats = (updates: Partial<typeof stats>) => {
+    setStats(prev => {
+      const newStats = { ...prev, ...updates };
+      // Verificar logros automáticamente
+      setTimeout(() => checkAllBadges(newStats), 100);
+      return newStats;
+    });
+  };
 
   const isYoungUser = currentProfile ? currentProfile.age <= 6 : false;
 
@@ -78,6 +214,14 @@ export default function App() {
     if (currentProfile) {
       updateStars(currentProfile.id, amount);
       setStarsEarned((prev) => prev + amount);
+      
+      // Actualizar estadísticas
+      updateStats({ totalStars: stats.totalStars + amount });
+      
+      // Activar efecto al ganar estrellas
+      if (amount > 0) {
+        setTimeout(() => triggerEquippedEffect(), 300);
+      }
     }
   };
 
@@ -111,14 +255,37 @@ export default function App() {
     const purchasedItem = shopItems.find(item => item.id === itemId);
     const isAvatar = purchasedItem?.category === "avatar";
     const isTheme = purchasedItem?.category === "theme";
+    const isEffect = purchasedItem?.category === "effect";
     
     if (isAvatar) {
       unlockAvatarForProfile(currentProfile.id, itemId);
     } else if (isTheme) {
       unlockThemeForProfile(currentProfile.id, itemId);
+    } else if (isEffect) {
+      unlockEffect(itemId);
+      setUnlockedEffects(prev => [...prev, itemId]);
+      // Mostrar el efecto recién comprado
+      setTimeout(() => triggerEquippedEffect(), 500);
     }
     
     return true;
+  };
+
+  // Función para equipar efecto
+  const handleEquipEffect = (effectId: string) => {
+    const success = equipEffect(effectId);
+    if (success) {
+      setEquippedEffect(effectId);
+      speakWithQueue(`¡Efecto equipado!`, 0.85);
+      setTimeout(() => triggerEquippedEffect(), 500);
+    }
+  };
+
+  // Función para desequipar efecto
+  const handleUnequipEffect = () => {
+    unequipEffect();
+    setEquippedEffect(null);
+    speakWithQueue(`Efecto desequipado`, 0.85);
   };
 
   // Función para guardar avatar desde configuración
@@ -130,7 +297,7 @@ export default function App() {
   };
 
   // Función para equipar tema (guarda en el perfil actual)
-  const handleEquipTheme = (themeClass: string, themeId?: string) => {
+  const handleEquipTheme = (themeClass: string) => {
     setCurrentTheme(themeClass);
     
     if (currentProfile) {
@@ -182,17 +349,20 @@ export default function App() {
     setShowSettings(false);
   };
 
-  // Obtener la clase del tema actual
+  // Obtener la clase del tema actual (gradiente)
   const getThemeClass = () => {
     if (currentTheme === "default") {
-      return "bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100";
+      return "from-purple-100 via-blue-100 to-pink-100";
     }
-    return `bg-gradient-to-br ${currentTheme}`;
+    return currentTheme;
   };
 
   // Obtener items desbloqueados del perfil actual
   const unlockedAvatars = currentProfile ? getUnlockedAvatars(currentProfile.id) : [];
   const unlockedThemes = currentProfile ? getUnlockedThemes(currentProfile.id) : [];
+  
+  // Combinar todos los items desbloqueados (avatares + temas + efectos)
+  const allUnlockedItems = [...unlockedAvatars, ...unlockedThemes, ...unlockedEffects];
 
   // ========== RENDER ==========
   
@@ -208,11 +378,18 @@ export default function App() {
           avatar: currentProfile.avatar,
         }}
         currentTheme={currentTheme}
+        themeClass={getThemeClass()}
         unlockedAvatars={unlockedAvatars}
         unlockedThemes={unlockedThemes}
+        unlockedEffects={unlockedEffects}
+        equippedEffect={equippedEffect}
+        claimedBadges={claimedBadges}
+        stats={stats}
         onSaveAvatar={handleSaveAvatar}
         onEquipTheme={handleEquipTheme}
         onResetTheme={handleResetTheme}
+        onEquipEffect={handleEquipEffect}
+        onUnequipEffect={handleUnequipEffect}
         onBack={handleCloseSettings}
       />
     );
@@ -220,7 +397,6 @@ export default function App() {
   
   // Si la tienda está abierta
   if (showShop && currentProfile) {
-    const allUnlockedItems = [...unlockedAvatars, ...unlockedThemes];
     return (
       <ShopScreen
         stars={currentProfile.stars}
@@ -229,12 +405,20 @@ export default function App() {
         unlockedItems={allUnlockedItems}
         onEquipAvatar={handleUpdateAvatar}
         onEquipTheme={handleEquipTheme}
+        onEquipEffect={handleEquipEffect}
+        equippedEffect={equippedEffect}
+        themeClass={getThemeClass()}
+        stats={stats}
+        onClaimBadge={() => {
+          // Actualizar badges reclamados
+          setClaimedBadges(getClaimedBadges());
+        }}
       />
     );
   }
 
   return (
-    <div className={`min-h-screen w-full transition-all duration-500 ${getThemeClass()} relative`}>
+    <div className={`min-h-screen w-full transition-all duration-500 bg-gradient-to-br ${getThemeClass()} relative`}>
       <div className="max-w-7xl mx-auto p-4">
         <AnimatePresence mode="wait">
           {currentScreen === "voice-setup" && (
@@ -254,6 +438,7 @@ export default function App() {
                 setCurrentScreen("menu");
               }}
               onNewProfile={() => setCurrentScreen("voice-setup")}
+              themeClass={getThemeClass()}
             />
           )}
 
@@ -270,6 +455,7 @@ export default function App() {
               onOpenShop={handleOpenShop}
               onScrollLeft={() => scrollCarousel("left")}
               onScrollRight={() => scrollCarousel("right")}
+              themeClass={getThemeClass()}
             />
           )}
 
@@ -282,6 +468,8 @@ export default function App() {
               onAwardStars={handleUpdateStars}
               onFinish={() => setCurrentScreen("rewards")}
               onExit={resetToMenu}
+              themeClass={getThemeClass()}
+              onUpdateStats={updateStats}
             />
           )}
 
@@ -294,6 +482,8 @@ export default function App() {
               onAwardStars={handleUpdateStars}
               onFinish={() => setCurrentScreen("rewards")}
               onExit={resetToMenu}
+              themeClass={getThemeClass()}
+              onUpdateStats={updateStats}
             />
           )}
 
@@ -306,6 +496,8 @@ export default function App() {
               onAwardStars={handleUpdateStars}
               onFinish={() => setCurrentScreen("rewards")}
               onExit={resetToMenu}
+              themeClass={getThemeClass()}
+              onUpdateStats={updateStats}
             />
           )}
 
@@ -315,6 +507,7 @@ export default function App() {
               starsEarned={starsEarned}
               totalStars={currentProfile.stars}
               onBackToMenu={resetToMenu}
+              themeClass={getThemeClass()}
             />
           )}
         </AnimatePresence>

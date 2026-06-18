@@ -4,6 +4,7 @@ import { Home, Star, Volume2, Mic, RefreshCw, Loader2, Trophy } from "lucide-rea
 import { getWordByAge, getRelatedWords, getRealImage, evaluateSpeech, resetWordHistory, getWordDifficulty } from "../../services/dynamicWordService";
 import { PronunciationPractice } from "./PronuntiationPractice";
 import { speak, speakWithQueue } from "../../services/warmVoiceService";
+import { triggerEquippedEffect } from "../../services/effectsServices";
 
 interface Activity1Props {
   age: number;
@@ -12,9 +13,17 @@ interface Activity1Props {
   onAwardStars: (amount: number) => void;
   onFinish: () => void;
   onExit: () => void;
+  themeClass?: string;
+  onUpdateStats?: (updates: Partial<{
+    totalWords: number;
+    totalSounds: number;
+    perfectStreak: number;
+    activitiesCompleted: number;
+    totalStars: number;
+  }>) => void;
 }
 
-export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit }: Activity1Props) => {
+export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit, themeClass = "from-purple-100 via-blue-100 to-pink-100", onUpdateStats }: Activity1Props) => {
   const isYoung = age <= 7;
   const [currentWord, setCurrentWord] = useState("");
   const [options, setOptions] = useState<string[]>([]);
@@ -105,6 +114,9 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     setShowFeedback(true);
 
     if (isImgCorrect) {
+      // Activar efecto al acertar
+      triggerEquippedEffect();
+      
       const difficulty = getWordDifficulty(currentWord, age);
       
       if (difficulty === 'hard') {
@@ -139,6 +151,8 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
     
     if (success && practiceStars > 0) {
       onAwardStars(practiceStars);
+      // Activar efecto al ganar estrellas
+      triggerEquippedEffect();
       setFeedbackMessage(`¡Excelente! +${practiceStars} ${practiceStars === 1 ? 'estrella' : 'estrellas'} por tu pronunciación ⭐`);
       setShowFeedback(true);
       setIsCorrect(true);
@@ -171,7 +185,11 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
       setIsRecording(false);
       const result = evaluateSpeech(spoken, currentWord, userName);
       
-      if (result.correct) onAwardStars(result.stars);
+      if (result.correct) {
+        onAwardStars(result.stars);
+        // Activar efecto al acertar la pronunciación
+        triggerEquippedEffect();
+      }
       
       setIsCorrect(result.correct);
       setShowFeedback(true);
@@ -203,7 +221,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   // Pantalla final
   if (gameFinished) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center p-6">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} flex items-center justify-center p-6`}>
         <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="bg-white rounded-3xl p-10 shadow-2xl text-center max-w-md w-full">
           <div className="bg-yellow-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
             <Trophy className="text-yellow-500" size={50} />
@@ -229,7 +247,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 flex items-center justify-center">
+      <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} flex items-center justify-center`}>
         <div className="text-center">
           <Loader2 size={48} className="animate-spin text-purple-600 mx-auto mb-4" />
           <p className="text-purple-600">Buscando palabra...</p>
@@ -239,7 +257,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 p-4">
+    <div className={`min-h-screen w-full bg-gradient-to-br ${themeClass} p-4`}>
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
@@ -249,7 +267,7 @@ export const Activity1 = ({ age, stars, userName, onAwardStars, onFinish, onExit
           </button>
           
           <div className="flex items-center gap-4">
-            <div className="bg-white/50 px-4 py-2 rounded-full">
+            <div className="bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full">
               <span className="text-purple-700 font-bold">Palabra {wordCount + 1}/{MAX_WORDS}</span>
             </div>
             <div className="flex items-center gap-2 bg-white rounded-full px-5 py-2 shadow-lg">
